@@ -854,7 +854,7 @@ function viewKnockout(){
   const M=koModel(S.ko),info=S.ko.info,R=M.R;
   const rounds=M.rounds.map((ms,r)=>{
     const last=r===R-1,list=ms.map((m,i)=>koCard(m,matchLabel(r,R,i),info,last?'final':null)),all=ms.slice();
-    if(last&&M.third){ list.push(`<div><h4 style="margin:6px 0 8px;text-align:center">${esc(t('third'))}</h4>${koCard(M.third,t('third_match'),info,'third')}</div>`); all.push(M.third); }
+    if(last&&M.third){ list.push(koCard(M.third,t('third_match'),info,'third')); all.push(M.third); }
     return {t:roundName(r,R),list,ms:all};
   });
   const act=rounds.findIndex(r=>r.ms.some(m=>m.a&&m.b&&!m.bye&&!m.ev.done));
