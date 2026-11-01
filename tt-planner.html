@@ -1,0 +1,937 @@
+<title>Table Tennis Planner</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Plan a table tennis tournament: seeded group draw, live standings and a knockout bracket with a third-place match. Free, no sign-up, works on phones.">
+<meta name="theme-color" content="#3f78b8">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Table Tennis Planner">
+<meta property="og:description" content="Seeded group draw, live standings and a knockout bracket with a third-place match.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 34 34'%3E%3Ccircle cx='17' cy='17' r='15' fill='%23e4eefa' stroke='%234a5058' stroke-width='1.2'/%3E%3Ccircle cx='17' cy='17' r='3.2' fill='%233f78b8'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout: one centred column. A three-step pager on top shows a single stage at a time; earlier stages stay reachable. */
+:root{
+  --paper:#ffffff; --sky-50:#f3f8fd; --sky-100:#e4eefa; --sky-200:#cfe0f3; --sky-400:#7fa9d8; --sky-600:#3f78b8; --sky-800:#1d4a7d;
+  --ink:#2a2f36; --ink-2:#5a626c; --line:#4a5058; --line-soft:#9aa1aa;
+  --ok-bg:#d6efdc; --ok-line:#3b9a54; --ok-ink:#17562b;
+  --no-bg:#f8d9d9; --no-line:#c95151; --no-ink:#7d2222;
+  --gold:#f3d14f; --gold-soft:#fbeeb4; --gold-ink:#5b4300; --gold-line:#b88a00;
+  --warn-bg:#fdf0cf; --warn-ink:#6b4b00;
+  --f-display:'Bricolage Grotesque',system-ui,sans-serif; --f-body:'Figtree',system-ui,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font:15px/1.45 var(--f-body);font-variant-numeric:tabular-nums;
+  padding-block:0 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1120px;margin:0 auto}
+h1,h2,h3,h4{font-family:var(--f-display);margin:0;color:var(--sky-800);text-wrap:balance;font-weight:700}
+h1{font-size:22px;line-height:1.2} h2{font-size:21px} h3{font-size:16px} h4{font-size:13px}
+p{margin:0}
+.top{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:18px 0 14px}
+.brand{display:flex;align-items:center;gap:10px}
+button,input,select,textarea{font:inherit;color:inherit}
+.btn{appearance:none;background:var(--sky-600);color:#fff;border:1px solid var(--sky-800);border-radius:6px;padding:8px 16px;font-weight:600;cursor:pointer}
+.btn:hover{background:var(--sky-800)}
+.btn.ghost{background:#fff;color:var(--sky-800);border-color:var(--line)}
+.btn.ghost:hover{background:var(--sky-50)}
+.btn.small{padding:4px 10px;font-size:13px;font-weight:500}
+.msg.err{font-size:14px;margin-top:0}
+.tools-top{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.lang{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.lang .lb{appearance:none;border:0;background:#fff;color:var(--sky-800);padding:4px 10px;font-size:13px;font-weight:600;cursor:pointer}
+.lang .lb+.lb{border-left:1px solid var(--line)}
+.lang .lb.on{background:var(--sky-600);color:#fff}
+.savenote{color:var(--ink-2);font-size:13px;margin:-4px 0 14px;max-width:70ch}
+.in-viewer .savebar{display:none}
+.mc.bye{background:var(--sky-50)}
+.byebody{padding:8px 4px 4px;font-size:14px}
+.byebody small{color:var(--ink-2);margin-right:4px}
+.btn:disabled{background:var(--sky-100);color:#8b939c;border-color:var(--line-soft);cursor:not-allowed}
+:focus-visible{outline:2px solid var(--sky-400);outline-offset:2px}
+.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:0 0 22px;background:#fff}
+.step{appearance:none;border:0;border-right:1px solid var(--line);background:#fff;color:var(--ink-2);font-weight:500;padding:11px 8px;display:flex;gap:8px;align-items:center;justify-content:center;cursor:pointer;min-width:0}
+.step:last-child{border-right:0}
+.step .n{flex:none;width:22px;height:22px;border-radius:50%;border:1px solid currentColor;display:grid;place-items:center;font-size:12px}
+.step .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.step.done{background:var(--sky-100);color:var(--sky-800)}
+.step.on{background:var(--sky-600);color:#fff}
+.step.lock{color:#a0a7af;background:#fafbfc;cursor:not-allowed}
+.sechead{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.lead{color:var(--ink-2);max-width:64ch;margin-top:4px}
+.prog{border:1px solid var(--line);border-radius:20px;padding:3px 12px;background:var(--sky-50);font-size:13px}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px}
+.fld label{display:block;font-size:13px;font-weight:500;margin-bottom:3px}
+.fld small{display:block;color:var(--ink-2);font-size:12px;margin-top:3px;line-height:1.3}
+input.num,input.pname,input.ord,textarea{border:1px solid var(--line);border-radius:5px;background:#fff;height:34px;padding:0 9px;width:100%}
+textarea{height:110px;padding:8px 9px;resize:vertical}
+.msg{border:1px solid;border-radius:8px;padding:9px 14px;margin-bottom:10px;font-size:14px}
+.msg ul{margin:4px 0 0;padding-left:18px}
+.msg.err{background:var(--no-bg);border-color:var(--no-line);color:var(--no-ink)}
+.msg.warn{background:var(--warn-bg);border-color:var(--gold-line);color:var(--warn-ink)}
+.msg.info{background:var(--sky-50);border-color:var(--sky-400);color:var(--sky-800)}
+.plhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:20px 0 8px}
+.plhead .acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+details.paste{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin-bottom:10px;background:var(--sky-50)}
+details.paste summary{cursor:pointer;font-weight:500}
+details.paste .row{display:flex;gap:10px;margin-top:8px;align-items:flex-start;flex-wrap:wrap}
+details.paste textarea{flex:1 1 260px}
+.plist{border:1px solid var(--line);border-radius:8px;max-height:430px;overflow:auto;background:#fff}
+.prow{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:8px;align-items:center;padding:5px 8px;border-bottom:1px solid var(--sky-200)}
+.prow:last-child{border-bottom:0}
+.prow.seed{background:var(--sky-50)}
+.prow.cut{border-bottom:2px dashed var(--sky-400)}
+.prow .tools{display:flex;gap:4px;align-items:center}
+.ibtn{appearance:none;background:#fff;border:1px solid var(--line-soft);border-radius:5px;width:30px;height:30px;cursor:pointer;line-height:1}
+.ibtn:hover{background:var(--sky-100)}
+.seedmark{font-size:11px;border:1px solid var(--sky-600);color:var(--sky-800);border-radius:10px;padding:0 7px;background:#fff;margin-right:4px}
+.cta{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:18px}
+.cta .hint{color:var(--ink-2);font-size:13px}
+.confirm{background:var(--warn-bg);border:1px solid var(--gold-line);border-radius:8px;padding:10px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;color:var(--warn-ink)}
+.confirm span{flex:1 1 260px}
+.gchips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+.gchip{appearance:none;border:1px solid var(--line);background:#fff;border-radius:16px;padding:2px 12px;font-size:13px;cursor:pointer}
+.gchip.ok{background:var(--ok-bg);border-color:var(--ok-line);color:var(--ok-ink)}
+.ggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,345px),1fr));gap:16px;align-items:start}
+.gcard{border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden;min-width:0}
+.ghead{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--sky-100);border-bottom:1px solid var(--line)}
+.chip{font-size:12px;border:1px solid var(--line-soft);border-radius:12px;padding:0 9px;background:#fff;color:var(--ink-2)}
+.chip.ok{border-color:var(--ok-line);background:var(--ok-bg);color:var(--ok-ink)}
+.gbody{padding:12px;display:grid;gap:12px}
+.mb{min-width:0}
+.mc{border:1px solid var(--line);border-radius:8px;padding:8px;background:#fff;min-width:0}
+.mm{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:12px;color:var(--ink-2);margin-bottom:4px;min-height:22px}
+select.wo{font-size:11.5px;border:1px solid var(--line-soft);border-radius:4px;background:#fff;color:var(--ink-2);height:22px;max-width:150px;padding:0 2px}
+.sheet{display:grid;grid-template-rows:repeat(3,auto);grid-auto-flow:column;grid-template-columns:minmax(0,1fr) repeat(5,32px) 30px;gap:1px;background:var(--line-soft);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.sheet.withpt{grid-template-columns:minmax(0,1fr) repeat(5,32px) 30px 26px}
+.sheet>*{background:#fff;min-width:0}
+.sheet>.hc{font-size:11px;color:var(--ink-2);text-align:center;padding:3px 0;background:var(--sky-50)}
+.nmc{padding:0 8px;display:flex;align-items:center;gap:5px;height:30px;font-weight:500}
+.nmc .tx{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nmc small{color:var(--ink-2);font-weight:400;font-size:11.5px;flex:none}
+.nmc.tbd .tx{color:#8b939c;font-weight:400;font-style:italic}
+.c{height:30px;display:grid;place-items:center;font-weight:500}
+.sheet>.w{background:var(--ok-bg)} .sheet>.l{background:var(--no-bg)} .sheet>.gold{background:var(--gold)}
+.sc{width:100%;height:30px;border:0;background:transparent;text-align:center;padding:0;border-radius:0}
+.sc:focus{outline:2px solid var(--sky-400);outline-offset:-2px;background:#fff}
+.sc.gw{font-weight:700}
+.sc.bad{background:#fff;box-shadow:inset 0 0 0 2px var(--no-line)}
+.sc:disabled{color:var(--ink);opacity:1}
+.err{color:var(--no-ink);font-size:12px;margin-top:4px}
+table.st{width:100%;border-collapse:collapse;font-size:13.5px}
+.st th{background:var(--sky-100);color:var(--sky-800);font-weight:600;font-size:12px;padding:5px 6px;border:1px solid var(--line)}
+.st td{padding:5px 6px;border:1px solid var(--line);text-align:center;background:#fff}
+.st td.l,.st th.l{text-align:left}
+.st tr.g td{background:var(--ok-bg)} .st tr.r td{background:var(--no-bg)}
+.tag{font-size:11px;border:1px solid var(--line-soft);border-radius:10px;padding:0 6px;margin-left:5px;background:#fff;color:var(--ink-2);white-space:nowrap}
+.tag.ok{border-color:var(--ok-line);color:var(--ok-ink)}
+.tag.seed{border-color:var(--sky-600);color:var(--sky-800)}
+.panel{border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:18px;background:#fff;overflow-x:auto}
+.panel h3{margin-bottom:6px}
+.panel p.n{color:var(--ink-2);font-size:13px;margin:0 0 10px}
+.bracket{display:flex;gap:22px;overflow-x:auto;padding:4px 2px 14px;align-items:stretch}
+.rcol{display:flex;flex-direction:column;flex:0 0 296px;min-width:0}
+.rcol>h4{text-align:center;padding:6px 0;margin-bottom:8px;background:var(--sky-100);border:1px solid var(--line);border-radius:6px}
+.rcol.act>h4{background:var(--sky-600);color:#fff}
+.rbody{flex:1;display:flex;flex-direction:column;justify-content:space-around;gap:14px}
+.rnav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.champ{display:flex;gap:10px 22px;align-items:center;flex-wrap:wrap;background:var(--gold-soft);border:1px solid var(--gold-line);border-radius:10px;padding:12px 16px;margin-bottom:16px}
+.champ .big{background:var(--gold);border:1px solid var(--gold-line);border-radius:8px;padding:4px 14px;font:700 20px var(--f-display);color:var(--gold-ink)}
+.champ span{color:var(--gold-ink)}
+.foot{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px;align-items:center}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-2);margin-bottom:12px}
+.legend i{display:inline-block;width:12px;height:12px;border:1px solid var(--line);border-radius:3px;margin-right:5px;vertical-align:-1px}
+@media (max-width:520px){
+  h2{font-size:19px}.step .t{font-size:13px}.step .n{display:none}
+  .sheet{grid-template-columns:minmax(0,1fr) repeat(5,27px) 26px}
+  .sheet.withpt{grid-template-columns:minmax(0,1fr) repeat(5,27px) 26px 22px}
+  .nmc{padding:0 6px;gap:4px}.nmc small{display:none}
+  .gbody{padding:10px}.mc{padding:6px}
+  .sc,input.num,input.pname,input.ord,textarea,select.wo{font-size:16px}
+  select.wo{height:28px;max-width:130px}
+  .rcol{flex-basis:calc(100vw - 48px)}
+}
+@media (prefers-reduced-motion:no-preference){.sc{transition:background .12s}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg width="34" height="34" viewBox="0 0 34 34" role="img" data-ia="ball" aria-label="Table tennis ball"><circle cx="17" cy="17" r="15" fill="#e4eefa" stroke="#4a5058" stroke-width="1.2"/><path d="M7 11c5 3 15 3 20 0" fill="none" stroke="#3f78b8" stroke-width="1.6" stroke-linecap="round"/><circle cx="17" cy="17" r="3.2" fill="#3f78b8"/></svg>
+      <h1 data-i="app_name">Table tennis planner</h1>
+    </div>
+    <div class="tools-top">
+      <div class="lang" role="group" data-ia="lang_aria" aria-label="Language"><button class="lb" data-act="lang" data-l="en" lang="en">EN</button><button class="lb" data-act="lang" data-l="nl" lang="nl">NL</button></div>
+      <span class="savebar" style="display:contents"><button class="btn ghost small" data-act="save" data-i="save">Save tournament</button>
+      <button class="btn ghost small" data-act="load" data-i="load">Load tournament</button></span>
+      <button class="btn ghost small" data-act="ask-startover" data-i="startover">Start over</button>
+    </div>
+    <input type="file" id="loadFile" accept=".json,application/json" hidden data-ia="file_aria" aria-label="Choose a saved tournament file">
+  </header>
+  <p class="savenote savebar" data-i="savenote">Your progress is stored in this browser only.</p>
+  <nav class="steps" id="steps" data-ia="steps_aria" aria-label="Tournament stages"></nav>
+  <main id="app"></main>
+</div>
+
+<script>
+//#CORE-START
+function toInt(s){ if(s===''||s==null) return null; const n=Number(s); return Number.isInteger(n)&&n>=0?n:NaN; }
+function validGame(x,y){ const hi=Math.max(x,y), lo=Math.min(x,y); if(hi<11) return false; if(hi===11) return hi-lo>=2; return hi-lo===2; }
+function emptyEntry(){ return {g:[['',''],['',''],['',''],['',''],['','']],wo:null}; }
+function ordinal(n){ const s=['th','st','nd','rd'],v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); }
+function letter(i){ return String.fromCharCode(65+i); }
+
+function evalEntry(e){
+  const r={ga:0,gb:0,pa:0,pb:0,done:false,winner:null,bad:{},gw:{},started:false,wo:null};
+  if(!e) return r;
+  if(e.wo==='a'||e.wo==='b'){
+    r.wo=e.wo; r.done=true; r.winner=e.wo; r.started=true;
+    if(e.wo==='a'){r.ga=3;r.pa=33;}else{r.gb=3;r.pb=33;}
+    return r;
+  }
+  let decided=false,gap=false;
+  for(let i=0;i<5;i++){
+    const gm=(e.g&&e.g[i])||['',''];
+    const x=toInt(gm[0]),y=toInt(gm[1]);
+    if(x===null&&y===null){gap=true;continue;}
+    r.started=true;
+    if(decided){r.bad[i]='err_decided';continue;}
+    if(gap){r.bad[i]='err_order';continue;}
+    if(x===null||y===null){gap=true;continue;}
+    if(isNaN(x)||isNaN(y)||!validGame(x,y)){r.bad[i]='err_game';gap=true;continue;}
+    r.pa+=x;r.pb+=y;
+    if(x>y){r.ga++;r.gw[i]='a';}else{r.gb++;r.gw[i]='b';}
+    if(r.ga===3||r.gb===3){decided=true;r.done=true;r.winner=r.ga===3?'a':'b';}
+  }
+  if(Object.keys(r.bad).length){r.done=false;r.winner=null;}
+  return r;
+}
+
+function roundRobin(ids){
+  let arr=ids.slice(); if(arr.length%2) arr.push(null);
+  const n=arr.length,rounds=[];
+  for(let r=0;r<n-1;r++){
+    const pairs=[];
+    for(let i=0;i<n/2;i++){const a=arr[i],b=arr[n-1-i]; if(a!=null&&b!=null) pairs.push([a,b]);}
+    rounds.push(pairs);
+    arr=[arr[0],arr[n-1]].concat(arr.slice(1,n-1));
+  }
+  return rounds;
+}
+function buildMatches(pids){
+  const ms=[];
+  roundRobin(pids).forEach((rd,ri)=>rd.forEach((pr,k)=>ms.push({id:ri+'-'+k,a:pr[0],b:pr[1],round:ri+1,e:emptyEntry()})));
+  return ms;
+}
+function shuffle(a,rng){ for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));const t=a[i];a[i]=a[j];a[j]=t;} return a; }
+function drawGroups(ids,G,seedCount,rng){
+  rng=rng||Math.random;
+  const gr=Array.from({length:G},()=>[]);
+  const seeds=ids.slice(0,seedCount),rest=ids.slice(seedCount);
+  for(let k=0;k*G<seeds.length;k++){
+    seeds.slice(k*G,(k+1)*G).forEach((pid,i)=>{ gr[k%2===0?i:G-1-i].push(pid); });
+  }
+  for(let k=0;k*G<rest.length;k++){
+    const chunk=rest.slice(k*G,(k+1)*G);
+    let order=shuffle(Array.from({length:G},(_,i)=>i),rng);
+    if(chunk.length<G) order=order.sort((x,y)=>gr[x].length-gr[y].length);
+    chunk.forEach((pid,i)=>gr[order[i]].push(pid));
+  }
+  return gr;
+}
+
+function tally(group,ev,filter){
+  const T={}; group.pids.forEach(p=>{T[p]={pid:p,p:0,w:0,gw:0,gl:0,pw:0,pl:0};});
+  group.matches.forEach(m=>{
+    const r=ev[m.id]; if(!r.done||(filter&&!filter(m))) return;
+    const A=T[m.a],B=T[m.b]; A.p++;B.p++;
+    A.gw+=r.ga;A.gl+=r.gb;B.gw+=r.gb;B.gl+=r.ga;
+    A.pw+=r.pa;A.pl+=r.pb;B.pw+=r.pb;B.pl+=r.pa;
+    if(r.winner==='a')A.w++;else B.w++;
+  });
+  return T;
+}
+function cmpKey(a,b){ for(let i=0;i<a.length;i++){ if(a[i]!==b[i]) return a[i]-b[i]; } return 0; }
+
+function rankGroup(group,ev,lots){
+  const all=tally(group,ev);
+  const complete=group.matches.every(m=>ev[m.id].done);
+  const byW={};
+  group.pids.forEach(p=>{(byW[all[p].w]=byW[all[p].w]||[]).push(Object.assign({},all[p]));});
+  const ordered=[];
+  Object.keys(byW).map(Number).sort((a,b)=>b-a).forEach(w=>{
+    const blk=byW[w];
+    if(blk.length>1){
+      const set=new Set(blk.map(r=>r.pid));
+      const h=tally(group,ev,m=>set.has(m.a)&&set.has(m.b));
+      blk.forEach(r=>{const x=h[r.pid]; r.key=[x.w,x.gw-x.gl,x.pw-x.pl,r.gw-r.gl,r.pw-r.pl];});
+      blk.sort((a,b)=>cmpKey(b.key.concat([lots[b.pid]||0]),a.key.concat([lots[a.pid]||0])));
+      for(let i=0;i<blk.length;i++){
+        const tied=(j)=>j>=0&&j<blk.length&&cmpKey(blk[i].key,blk[j].key)===0;
+        if(tied(i-1)||tied(i+1)) blk[i].lot=true;
+      }
+    }
+    blk.forEach(r=>ordered.push(r));
+  });
+  ordered.forEach((r,i)=>{r.rank=i+1;});
+  return {rows:ordered,complete};
+}
+function adjStats(group,ev,rows,pid,m){
+  const excl=new Set(rows.filter(r=>r.rank>m).map(r=>r.pid)); excl.delete(pid);
+  return tally(group,ev,x=>!excl.has(x.a)&&!excl.has(x.b))[pid];
+}
+
+function nextPow2(n){ let k=2; while(k<n) k*=2; return k; }
+function koPlan(sizes,A){
+  const G=sizes.length,direct=G*A,K=nextPow2(direct);
+  const cand=sizes.filter(z=>z>=A+1).length,need=K-direct;
+  const extra=need<=cand?need:0;
+  return {G,direct,K,extra,N:direct+extra,byes:K-direct-extra,cand};
+}
+
+function qualification(S){
+  const A=(S.cfg&&S.cfg.adv)||S.setup.adv;
+  const plan=koPlan(S.groups.map(g=>g.pids.length),A),extra=plan.extra;
+  const ev={},rk={};
+  S.groups.forEach(g=>{
+    const e={}; g.matches.forEach(m=>{e[m.id]=evalEntry(m.e);});
+    ev[g.name]=e; rk[g.name]=rankGroup(g,e,S.lots||{});
+  });
+  const allComplete=S.groups.every(g=>rk[g.name].complete);
+  const res={ev,rk,allComplete,extra,plan,tiers:[],qualified:{},seedList:[],extraList:null};
+  if(!allComplete) return res;
+  const mGlobal=Math.min.apply(null,S.groups.map(g=>g.pids.length));
+  const tier=(t,m)=>{
+    const list=[];
+    S.groups.forEach(g=>{
+      if(g.pids.length<t) return;
+      const rows=rk[g.name].rows,row=rows[t-1],st=adjStats(g,ev[g.name],rows,row.pid,m);
+      list.push({pid:row.pid,group:g.name,pos:t,w:st.w,gd:st.gw-st.gl,pd:st.pw-st.pl,key:[st.w,st.gw-st.gl,st.pw-st.pl]});
+    });
+    list.sort((a,b)=>cmpKey(b.key.concat([(S.lots||{})[b.pid]||0]),a.key.concat([(S.lots||{})[a.pid]||0])));
+    for(let i=0;i<list.length;i++){
+      const tied=(j)=>j>=0&&j<list.length&&cmpKey(list[i].key,list[j].key)===0;
+      if(tied(i-1)||tied(i+1)) list[i].lot=true;
+    }
+    return list;
+  };
+  for(let t=1;t<=A;t++) res.tiers.push(tier(t,mGlobal));
+  if(extra>0){
+    const cand=S.groups.filter(g=>g.pids.length>=A+1);
+    const m=Math.min.apply(null,cand.map(g=>g.pids.length));
+    const list=tier(A+1,m);
+    list.forEach((x,i)=>{x.through=i<extra;});
+    res.extraList=list; res.tiers.push(list.slice(0,extra));
+  }
+  res.seedList=[].concat.apply([],res.tiers);
+  res.seedList.forEach((x,i)=>{x.seed=i+1;res.qualified[x.pid]=x;});
+  return res;
+}
+
+function seedOrder(K){ let a=[1,2]; for(let n=4;n<=K;n*=2){ const b=[]; a.forEach(s=>{b.push(s,n+1-s);}); a=b; } return a; }
+function makeKnockout(S,q){
+  const list=q.seedList,N=list.length,K=q.plan.K,by=n=>n<=N?list[n-1]:null;
+  const ord=seedOrder(K),pairs=[]; for(let i=0;i<K;i+=2) pairs.push([ord[i],ord[i+1]]);
+  const clash=p=>by(p[0])&&by(p[1])&&by(p[0]).group===by(p[1]).group;
+  for(let i=0;i<pairs.length;i++){
+    if(!clash(pairs[i])) continue;
+    let best=null,bd=1e9;
+    for(let j=0;j<pairs.length;j++){
+      if(j===i||!by(pairs[j][1])) continue;
+      const a=[pairs[i][0],pairs[j][1]],b=[pairs[j][0],pairs[i][1]];
+      if(clash(a)||clash(b)) continue;
+      const d=Math.abs(pairs[i][1]-pairs[j][1]); if(d<bd){bd=d;best=j;}
+    }
+    if(best!==null){const t=pairs[i][1];pairs[i][1]=pairs[best][1];pairs[best][1]=t;}
+  }
+  const info={}; list.forEach(x=>{info[x.pid]={seed:x.seed,group:x.group,label:x.pos+x.group};});
+  const pid=n=>by(n)?by(n).pid:null;
+  return {K,N,first:pairs.map(p=>[pid(p[0]),pid(p[1])]),entries:{},info,rematch:pairs.some(clash)};
+}
+function koModel(ko){
+  const all={};
+  const mk=(id,a,b,isFirst)=>{
+    const bye=!!isFirst&&((a==null)!==(b==null));
+    const sig=a&&b?a+'|'+b:null;
+    const entry=sig&&ko.entries[id]&&ko.entries[id].sig===sig?ko.entries[id]:null;
+    const ev=evalEntry(entry);
+    const m={id,a,b,sig,entry,ev,bye,w:null,l:null};
+    if(bye){ m.w=a||b; }
+    else if(ev.done){ m.w=ev.winner==='a'?a:b; m.l=ev.winner==='a'?b:a; }
+    all[id]=m; return m;
+  };
+  const R=Math.round(Math.log2(ko.K)),rounds=[ko.first.map((p,i)=>mk('R0-'+i,p[0],p[1],true))];
+  for(let r=1;r<R;r++){
+    const prev=rounds[r-1],cur=[];
+    for(let i=0;i<prev.length/2;i++) cur.push(mk('R'+r+'-'+i,prev[2*i].w,prev[2*i+1].w));
+    rounds.push(cur);
+  }
+  const fin=rounds[R-1][0];
+  let third=null;
+  if(R>=2){ const sf=rounds[R-2]; if(!sf.some(m=>m.bye)) third=mk('T',sf[0].l,sf[1].l); }
+  return {rounds,R,fin,third,all};
+}
+
+function validateSetup(s,n){
+  const E=[],W=[]; const G=s.g,P=s.per,A=s.adv,SD=s.seeds;
+  const M=(k,v)=>({k,v:v||{}});
+  if(![n,G,P,A,SD].every(Number.isInteger)) return {E:[M('v_fill')],W:[],sizes:[],plan:null};
+  if(n<4) E.push(M('v_n_min'));
+  if(n>128) E.push(M('v_n_max'));
+  if(G<1||G>26) E.push(M('v_g_range'));
+  let sizes=[];
+  if(G>=1&&G<=26&&n>=1){
+    const base=Math.floor(n/G),ex=n%G;
+    sizes=Array.from({length:G},(_,i)=>i<ex?base+1:base);
+    const need=Math.ceil(n/G);
+    if(P!==need) E.push(M('v_per',{n,G,ex,base,need}));
+    if(base<2) E.push(M('v_base'));
+  }
+  if(A<1) E.push(M('v_adv_min'));
+  const minSize=sizes.length?Math.min.apply(null,sizes):0;
+  if(sizes.length&&A>=1&&A>minSize) E.push(M('v_adv_max',{min:minSize}));
+  let plan=null;
+  if(sizes.length&&A>=1&&A<=minSize){
+    plan=koPlan(sizes,A);
+    if(plan.direct<2) E.push(M('v_direct_min'));
+    if(plan.K>64) E.push(M('v_k_max',{direct:plan.direct}));
+  }
+  if(SD<0||SD>n) E.push(M('v_seeds_range'));
+  if(!E.length){
+    if(new Set(sizes).size>1) W.push(M('w_uneven',{max:Math.max.apply(null,sizes),min:minSize}));
+    if(minSize<=3) W.push(M('w_small'));
+    if(SD>0&&SD%G!==0) W.push(M('w_seeds_uneven',{sd:SD,G}));
+    if(SD<G) W.push(M('w_seeds_few',{sd:SD,G}));
+    if(plan&&plan.byes>0) W.push(M('w_byes',{direct:plan.direct,K:plan.K,byes:plan.byes}));
+    if(plan&&A>=minSize) W.push(M('w_all'));
+  }
+  return {E,W,sizes,plan};
+}
+//#CORE-END
+
+//#I18N-START
+const DICT={
+en:{
+app_title:'Table Tennis Planner',app_name:'Table tennis planner',ball:'Table tennis ball',
+save:'Save tournament',load:'Load tournament',startover:'Start over',file_aria:'Choose a saved tournament file',lang_aria:'Language',
+savenote:'Your progress is stored in this browser only. Use Save tournament to keep a file, and Load tournament to continue on another device.',
+steps_aria:'Tournament stages',s_setup:'Setup',s_groups:'Group stage',s_ko:'Knockout',
+err_decided:'The match was already decided, so this game is not played.',err_order:'Fill in the games in order.',err_game:'Not a valid game: first to 11 and two clear (11-9, 12-10).',
+v_fill:'Fill in every number field.',v_n_min:'At least 4 players are needed.',v_n_max:'Use at most 128 players.',v_g_range:'Use between 1 and 26 groups.',
+v_per:v=>`${v.n} players in ${v.G} groups gives ${v.ex?`${v.ex} group${v.ex>1?'s':''} of ${v.base+1} and ${v.G-v.ex} of ${v.base}`:`${v.G} groups of ${v.base}`}. Set players per group to ${v.need}.`,
+v_base:'Every group needs at least 2 players.',v_adv_min:'At least 1 player per group must advance.',
+v_adv_max:v=>`Only ${v.min} players are in the smallest group, so at most ${v.min} can advance per group.`,
+v_direct_min:'At least 2 players must go through to the knockout stage.',
+v_k_max:v=>`That would send ${v.direct} players to the knockout stage. The maximum is 64. Lower the number of groups or the number advancing.`,
+v_seeds_range:'The number of seeded players must be between 0 and the number of players.',
+w_uneven:v=>`Groups differ in size (${v.max} and ${v.min} players), so players in the smaller groups play fewer matches.`,
+w_small:'Groups of 3 give each player only 2 matches, which leaves a lot to chance. Groups of 4 or 5 are fairer.',
+w_seeds_uneven:v=>`${v.sd} seeds do not fill the pots evenly (${v.G} per pot), so some groups get one seed fewer than others.`,
+w_seeds_few:v=>`There are fewer seeds (${v.sd}) than groups (${v.G}), so some groups get no seed and can end up stronger than others.`,
+w_byes:v=>`${v.direct} qualifiers do not fill a bracket of ${v.K}, and there are not enough next-placed players to top it up, so the top ${v.byes} seeds get a bye in the first round. Byes favour the best group results. A knockout stage of 4, 8, 16 or 32 players avoids them.`,
+w_all:'Everyone in the smallest group advances, so those players cannot be knocked out in their group.',
+h_setup:'Tournament setup',lead_setup:'Enter the numbers, list the players from strongest to weakest and create the groups. The order number sets the level: 1 is the strongest.',
+f_n:'Players',hint_n:'At least 4.',f_g:'Groups',hint_g:'Between 1 and 26.',f_per:'Players per group',hint_per:'Fills in by itself.',
+f_adv:'Advance per group',hint_adv:'Qualify for the knockout stage.',f_seeds:'Seeded players',hint_seeds:'The top of the list is seeded.',
+h_players:'Players in order of level',add_player:'Add player',paste_sum:'Paste a list of names',paste_ph:'One name per line, strongest first',paste_aria:'Names, one per line',paste_btn:'Use this list',
+order_help:'Type a new number to move a player. The others shift to make room, so adding a player at 5 pushes everyone from 5 down by one. The dashed line marks the end of the seeds.',
+seed_tag:'Seed',aria_order:v=>`Order number of ${v.name}`,aria_name:v=>`Name of player ${v.n}`,aria_up:v=>`Move ${v.name} up`,aria_down:v=>`Move ${v.name} down`,aria_del:v=>`Remove ${v.name}`,
+player_default:v=>`Player ${v.n}`,
+fix_title:'Fix this before creating groups',tips_title:'Fairness tips',and:'and',
+size_part:v=>`${v.c} group${v.c>1?'s':''} of ${v.z}`,info_in:v=>`${v.n} players in ${v.sizes}.`,
+q_extra:v=>`${v.direct} qualify directly (top ${v.A} of each group) and the best ${v.extra} ${ordinal(v.A+1)}-placed players complete a knockout stage of ${v.K}.`,
+q_byes:v=>`${v.direct} players qualify (top ${v.A} of each group) for a knockout stage of ${v.K}, with ${v.byes} first-round bye${v.byes>1?'s':''}.`,
+q_plain:v=>`The top ${v.A} of each group go through: ${v.direct} players in a knockout stage of ${v.K}.`,
+create_groups:'Create groups',create_again:'Create groups again',groups_exist:'Groups exist already. Creating them again clears every score.',back_groups:'Back to groups',
+tbd:'To be decided',aria_game:v=>`Game ${v.i}, ${v.name}`,wo_aria:'Walkover for this match',wo_title:'Use when a player does not show up or withdraws',wo_played:'Played',wo_win:v=>`Walkover: ${v.name} wins`,
+game_err:v=>`Game ${v.i}: ${v.msg}`,round_n:v=>`Round ${v.n}`,
+th_player:'Player',th_p:'P',th_p_t:'Matches played',th_pts:'Pts',th_pts_t:'Win points: 1 per match won',th_games:'Games',th_games_t:'Games won and lost',th_diff_t:'Rally point difference',
+tag_seed:'seed',tag_best:v=>`best ${ordinal(v.n)}`,tag_lot:'lot',tag_lot_t:'Still level after every tie-break, decided by lot',
+group_n:v=>`Group ${v.g}`,complete:'Complete',played_of:v=>`${v.d} of ${v.t} played`,
+extra_title:v=>`Best ${ordinal(v.n)}-placed players`,
+extra_note:v=>`The best ${v.extra} complete the field of ${v.K}. Ranked by win points, then game difference, then rally point difference${v.uneven?'. Results against the last-placed players of larger groups are left out, so every group is compared on the same number of matches':''}.`,
+th_group:'Group',th_gd:'Game diff',th_pd:'Point diff',
+h_groups:'Group stage',lead_groups:'Matches are best of 5 games, first to 11 points and two clear. Type the points each player scored in every game. Matches in the last round of a group are played at the same time.',
+prog:v=>`<b>${v.d}</b> of ${v.t} matches played`,locked:'The knockout stage exists, so group scores are locked.',unlock_btn:'Unlock and delete knockout',jump:'Jump to',
+legend_go:'Goes through to the knockout stage',legend_out:'Out',go_ko:'Go to knockout stage',mk_ko:'Create knockout stage',
+ko_ready:v=>`All groups are complete. ${v.N} players go through${v.byes?`, ${v.byes} of them with a first-round bye.`:'.'}`,
+ko_wait:v=>`Becomes active when every score is filled in (${v.d} of ${v.t}).`,back_setup:'Back to setup',redraw:'Redraw groups',
+r_final:'Final',r_semi:'Semi-finals',r_quarter:'Quarter-finals',r_of:v=>`Round of ${v.n}`,m_semi:v=>`Semi-final ${v.n}`,m_quarter:v=>`Quarter-final ${v.n}`,m_n:v=>`Match ${v.n}`,
+third:'Third place',third_match:'Match for third place',bye:'Bye',goes_through:'goes through',h_ko:'Knockout stage',
+lead_ko:v=>`${v.N} players, best of 5 games. Winners move on by themselves. A small label before a name is the group position, for example 1A is the winner of group A.`,
+champion:'Champion',runner:'Runner-up',rematch:'Two players from the same group meet in round 1. The pairing could not avoid it.',
+byes_note:v=>`${v.n} top seed${v.n>1?'s':''} start${v.n>1?'':'s'} with a bye in the first round.`,
+go_to:'Go to',won:'Won',lost:'Lost',back_ko:'Back to group stage',
+cancel:'Cancel',lbl_load:'Load file',
+c_again:'Creating the groups again clears every score entered so far.',c_redraw:'Redrawing the groups clears every score entered so far.',
+c_unlock:'Unlocking the groups deletes the knockout stage and all of its scores.',c_startover:'Starting over clears the groups and all scores. Your players and settings stay.',
+c_load:'Loading this file replaces the tournament that is open in this browser.',
+n_saved:'A copy of the tournament was saved to your downloads.',n_badfile:'That file is not a saved tournament from this planner.',n_unread:'That file could not be read.'
+},
+nl:{
+app_title:'Tafeltennis Planner',app_name:'Tafeltennis planner',ball:'Tafeltennisbal',
+save:'Toernooi opslaan',load:'Toernooi laden',startover:'Opnieuw beginnen',file_aria:'Kies een opgeslagen toernooibestand',lang_aria:'Taal',
+savenote:'Je voortgang wordt alleen in deze browser bewaard. Gebruik Toernooi opslaan om een bestand te bewaren en Toernooi laden om op een ander apparaat verder te gaan.',
+steps_aria:'Toernooifasen',s_setup:'Opzet',s_groups:'Poulefase',s_ko:'Knock-out',
+err_decided:'De wedstrijd is al beslist, dus deze game wordt niet gespeeld.',err_order:'Vul de games op volgorde in.',err_game:'Geen geldige game: eerst tot 11 met twee punten verschil (11-9, 12-10).',
+v_fill:'Vul alle getalvelden in.',v_n_min:'Er zijn minstens 4 spelers nodig.',v_n_max:'Gebruik hooguit 128 spelers.',v_g_range:'Gebruik tussen 1 en 26 poules.',
+v_per:v=>`${v.n} spelers in ${v.G} poules geeft ${v.ex?`${v.ex} ${v.ex>1?'poules':'poule'} van ${v.base+1} en ${v.G-v.ex} van ${v.base}`:`${v.G} poules van ${v.base}`}. Zet spelers per poule op ${v.need}.`,
+v_base:'Elke poule heeft minstens 2 spelers nodig.',v_adv_min:'Minstens 1 speler per poule moet doorgaan.',
+v_adv_max:v=>`De kleinste poule heeft maar ${v.min} spelers, dus er kunnen per poule maximaal ${v.min} doorgaan.`,
+v_direct_min:'Minstens 2 spelers moeten door naar de knock-outfase.',
+v_k_max:v=>`Dat zou ${v.direct} spelers naar de knock-outfase sturen. Het maximum is 64. Verlaag het aantal poules of het aantal doorgaande spelers.`,
+v_seeds_range:'Het aantal geplaatste spelers moet tussen 0 en het aantal spelers liggen.',
+w_uneven:v=>`De poules zijn niet even groot (${v.max} en ${v.min} spelers), dus spelers in de kleinere poules spelen minder wedstrijden.`,
+w_small:'In een poule van 3 speelt iedereen maar 2 wedstrijden, wat veel aan het toeval overlaat. Poules van 4 of 5 zijn eerlijker.',
+w_seeds_uneven:v=>`${v.sd} geplaatste spelers vullen de potten niet gelijk (${v.G} per pot), dus sommige poules krijgen één geplaatste speler minder dan andere.`,
+w_seeds_few:v=>`Er zijn minder geplaatste spelers (${v.sd}) dan poules (${v.G}), dus sommige poules krijgen er geen en kunnen sterker uitvallen dan andere.`,
+w_byes:v=>`${v.direct} doorgaande spelers vullen geen schema van ${v.K} en er zijn te weinig nummers uit de volgende plaats om het aan te vullen, dus de eerste ${v.byes} geplaatste spelers krijgen een bye in de eerste ronde. Een bye bevoordeelt de beste poule-uitslagen. Een knock-outfase van 4, 8, 16 of 32 spelers voorkomt dit.`,
+w_all:'Iedereen in de kleinste poule gaat door, dus die spelers kunnen in hun poule niet afvallen.',
+h_setup:'Toernooi opzetten',lead_setup:'Vul de aantallen in, zet de spelers van sterkste naar zwakste op een rij en maak de poules. Het volgnummer bepaalt het niveau: 1 is de sterkste.',
+f_n:'Spelers',hint_n:'Minimaal 4.',f_g:'Poules',hint_g:'Tussen 1 en 26.',f_per:'Spelers per poule',hint_per:'Wordt vanzelf ingevuld.',
+f_adv:'Doorgaan per poule',hint_adv:'Gaan naar de knock-outfase.',f_seeds:'Geplaatste spelers',hint_seeds:'De bovenste spelers van de lijst zijn geplaatst.',
+h_players:'Spelers op volgorde van niveau',add_player:'Speler toevoegen',paste_sum:'Plak een lijst met namen',paste_ph:'Eén naam per regel, sterkste eerst',paste_aria:'Namen, één per regel',paste_btn:'Deze lijst gebruiken',
+order_help:'Typ een nieuw nummer om een speler te verplaatsen. De anderen schuiven op, dus een speler op 5 zetten schuift iedereen vanaf 5 één plaats naar beneden. De gestippelde lijn markeert het einde van de geplaatste spelers.',
+seed_tag:'Geplaatst',aria_order:v=>`Volgnummer van ${v.name}`,aria_name:v=>`Naam van speler ${v.n}`,aria_up:v=>`Verplaats ${v.name} omhoog`,aria_down:v=>`Verplaats ${v.name} omlaag`,aria_del:v=>`Verwijder ${v.name}`,
+player_default:v=>`Speler ${v.n}`,
+fix_title:'Los dit op voordat je de poules maakt',tips_title:'Eerlijkheidstips',and:'en',
+size_part:v=>`${v.c} ${v.c>1?'poules':'poule'} van ${v.z}`,info_in:v=>`${v.n} spelers in ${v.sizes}.`,
+q_extra:v=>`${v.direct} spelers gaan direct door (de beste ${v.A} van elke poule) en de beste ${v.extra} nummers ${v.A+1} vullen de knock-outfase van ${v.K} aan.`,
+q_byes:v=>`${v.direct} spelers gaan door (de beste ${v.A} van elke poule) naar een knock-outfase van ${v.K}, met ${v.byes} ${v.byes>1?'byes':'bye'} in de eerste ronde.`,
+q_plain:v=>`De beste ${v.A} van elke poule gaan door: ${v.direct} spelers in een knock-outfase van ${v.K}.`,
+create_groups:'Poules maken',create_again:'Poules opnieuw maken',groups_exist:'Er zijn al poules. Ze opnieuw maken wist alle uitslagen.',back_groups:'Terug naar de poules',
+tbd:'Nog te bepalen',aria_game:v=>`Game ${v.i}, ${v.name}`,wo_aria:'Walkover voor deze wedstrijd',wo_title:'Gebruik dit als een speler niet komt opdagen of zich terugtrekt',wo_played:'Gespeeld',wo_win:v=>`Walkover: ${v.name} wint`,
+game_err:v=>`Game ${v.i}: ${v.msg}`,round_n:v=>`Ronde ${v.n}`,
+th_player:'Speler',th_p:'Gesp',th_p_t:'Gespeelde wedstrijden',th_pts:'Pnt',th_pts_t:'Winstpunten: 1 per gewonnen wedstrijd',th_games:'Games',th_games_t:'Gewonnen en verloren games',th_diff_t:'Puntenverschil',
+tag_seed:'geplaatst',tag_best:v=>`beste nr. ${v.n}`,tag_lot:'lot',tag_lot_t:'Nog gelijk na alle tiebreaks, het lot beslist',
+group_n:v=>`Poule ${v.g}`,complete:'Compleet',played_of:v=>`${v.d} van ${v.t} gespeeld`,
+extra_title:v=>`Beste nummers ${v.n}`,
+extra_note:v=>`De beste ${v.extra} vullen het veld van ${v.K} aan. Gerangschikt op winstpunten, daarna op gamesverschil en daarna op puntenverschil${v.uneven?'. Uitslagen tegen de laatst geëindigde spelers van grotere poules tellen niet mee, zodat elke poule op hetzelfde aantal wedstrijden wordt vergeleken':''}.`,
+th_group:'Poule',th_gd:'Gamesverschil',th_pd:'Puntenverschil',
+h_groups:'Poulefase',lead_groups:'Wedstrijden zijn best-of-5 games, eerst tot 11 punten met twee punten verschil. Vul in elke game de punten van elke speler in. Wedstrijden in de laatste ronde van een poule worden tegelijk gespeeld.',
+prog:v=>`<b>${v.d}</b> van ${v.t} wedstrijden gespeeld`,locked:'De knock-outfase bestaat al, dus de poule-uitslagen zijn vergrendeld.',unlock_btn:'Ontgrendel en verwijder knock-outfase',jump:'Ga naar',
+legend_go:'Gaat door naar de knock-outfase',legend_out:'Uitgeschakeld',go_ko:'Naar de knock-outfase',mk_ko:'Knock-outfase maken',
+ko_ready:v=>`Alle poules zijn compleet. ${v.N} spelers gaan door${v.byes?`, waarvan ${v.byes} met een bye in de eerste ronde.`:'.'}`,
+ko_wait:v=>`Wordt actief zodra alle uitslagen zijn ingevuld (${v.d} van ${v.t}).`,back_setup:'Terug naar de opzet',redraw:'Poules opnieuw loten',
+r_final:'Finale',r_semi:'Halve finales',r_quarter:'Kwartfinales',r_of:v=>`Laatste ${v.n}`,m_semi:v=>`Halve finale ${v.n}`,m_quarter:v=>`Kwartfinale ${v.n}`,m_n:v=>`Wedstrijd ${v.n}`,
+third:'Derde plaats',third_match:'Wedstrijd om de derde plaats',bye:'Bye',goes_through:'gaat door',h_ko:'Knock-outfase',
+lead_ko:v=>`${v.N} spelers, best-of-5 games. Winnaars gaan vanzelf door. Het kleine label voor een naam is de plaats in de poule, bijvoorbeeld 1A is de winnaar van poule A.`,
+champion:'Kampioen',runner:'Tweede plaats',rematch:'Twee spelers uit dezelfde poule ontmoeten elkaar in ronde 1. De indeling kon dit niet voorkomen.',
+byes_note:v=>`${v.n>1?v.n+' hoogst geplaatste spelers beginnen':'1 hoogst geplaatste speler begint'} met een bye in de eerste ronde.`,
+go_to:'Ga naar',won:'Gewonnen',lost:'Verloren',back_ko:'Terug naar de poulefase',
+cancel:'Annuleren',lbl_load:'Bestand laden',
+c_again:'Poules opnieuw maken wist alle ingevulde uitslagen.',c_redraw:'Opnieuw loten wist alle ingevulde uitslagen.',
+c_unlock:'Ontgrendelen verwijdert de knock-outfase en alle uitslagen daarin.',c_startover:'Opnieuw beginnen wist de poules en alle uitslagen. Je spelers en instellingen blijven bewaard.',
+c_load:'Dit bestand laden vervangt het toernooi dat nu in deze browser openstaat.',
+n_saved:'Een kopie van het toernooi is opgeslagen in je downloads.',n_badfile:'Dat bestand is geen opgeslagen toernooi van deze planner.',n_unread:'Dat bestand kon niet worden gelezen.'
+}};
+const LANGS=['en','nl'];
+function detectLang(){ try{const l=localStorage.getItem('tt-lang'); if(LANGS.indexOf(l)>=0) return l;}catch(e){} return /^nl\b/i.test((typeof navigator!=='undefined'&&navigator.language)||'')?'nl':'en'; }
+let LANG=detectLang();
+function t(k,v){ const d=DICT[LANG][k]; if(d===undefined) return k; return typeof d==='function'?d(v||{}):d; }
+//#I18N-END
+
+/* ---------- state ---------- */
+const KEY='tt-planner-v1';
+function defaultState(){
+  const players=[];
+  for(let i=1;i<=32;i++) players.push({id:'p'+i,name:'',order:i});
+  return {v:1,nextId:33,setup:{n:32,g:8,per:4,adv:2,seeds:16},players,roster:{},groups:null,lots:{},ko:null,view:'setup'};
+}
+function load(){ try{const r=localStorage.getItem(KEY); if(r){const s=JSON.parse(r); if(s&&s.v===1&&s.players) return s;}}catch(e){} return null; }
+function migrateKo(st){
+  const ko=st&&st.ko; if(!ko||ko.first||!ko.r16) return;
+  ko.first=ko.r16; delete ko.r16; ko.K=16; ko.N=16;
+  const map=k=>k.replace(/^R16-/,'R0-').replace(/^QF-/,'R1-').replace(/^SF-/,'R2-').replace(/^F$/,'R3-0');
+  const ne={}; Object.keys(ko.entries||{}).forEach(k=>{ne[map(k)]=ko.entries[k];}); ko.entries=ne;
+}
+function cleanNames(st){ (st.players||[]).forEach(p=>{ if(/^(Player|Speler) \d+$/.test(p.name)) p.name=''; }); (Object.keys(st.roster||{})).forEach(k=>{ const r=st.roster[k]; if(r&&/^(Player|Speler) \d+$/.test(r.name)) r.name=''; }); }
+function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
+let S=load()||defaultState();
+migrateKo(S); cleanNames(S);
+if(S.view==='groups'&&!S.groups) S.view='setup';
+if(S.view==='knockout'&&!S.ko) S.view=S.groups?'groups':'setup';
+let ui={confirm:null,notice:null,pending:null};
+if(window.claude) document.body.classList.add('in-viewer');
+const app=document.getElementById('app');
+const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $=id=>document.getElementById(id);
+function advN(){ return (S.cfg&&S.cfg.adv)||S.setup.adv; }
+
+/* ---------- players ---------- */
+function renumber(){ S.players.forEach((p,i)=>{p.order=i+1;}); }
+function syncCount(){ S.setup.n=S.players.length; S.setup.per=Math.ceil(S.setup.n/Math.max(1,S.setup.g||1)); }
+function addPlayer(){ S.players.push({id:'p'+(S.nextId++),name:'',order:S.players.length+1}); syncCount(); }
+function resizePlayers(n){
+  n=Math.max(1,Math.min(128,n));
+  while(S.players.length<n) S.players.push({id:'p'+(S.nextId++),name:'',order:S.players.length+1});
+  if(S.players.length>n) S.players=S.players.slice(0,n);
+  renumber(); S.setup.n=n;
+}
+function movePlayer(id,d){ const i=S.players.findIndex(p=>p.id===id),j=i+d; if(i<0||j<0||j>=S.players.length) return; const t=S.players[i];S.players[i]=S.players[j];S.players[j]=t; renumber(); }
+function setOrder(id,v){
+  const p=S.players.find(x=>x.id===id); if(!p||!Number.isFinite(v)) return;
+  v=Math.max(1,Math.min(S.players.length,Math.round(v))); const old=p.order; if(v===old) return;
+  S.players.forEach(x=>{x._k=x.order;}); p._k=v<old?v-0.5:v+0.5;
+  S.players.sort((a,b)=>a._k-b._k); S.players.forEach(x=>{delete x._k;}); renumber();
+}
+function removePlayer(id){ if(S.players.length<=1) return; S.players=S.players.filter(p=>p.id!==id); renumber(); syncCount(); }
+function usePasted(txt){
+  const names=txt.split(/\r?\n/).map(s=>s.replace(/^\s*\d+[.)]\s*/,'').trim()).filter(Boolean).slice(0,128);
+  if(!names.length) return;
+  S.players=names.map((nm,i)=>({id:(S.players[i]&&S.players[i].id)||'p'+(S.nextId++),name:nm,order:i+1}));
+  syncCount();
+}
+
+/* ---------- actions ---------- */
+function createGroups(){
+  const ids=S.players.map(p=>p.id), seeds=S.setup.seeds;
+  const gr=drawGroups(ids,S.setup.g,seeds);
+  const rank={}; S.players.forEach(p=>{rank[p.id]=p.order;});
+  S.roster={}; S.players.forEach(p=>{S.roster[p.id]={name:p.name,order:p.order,seed:p.order<=seeds};});
+  S.groups=gr.map((pids,i)=>{ pids=pids.slice().sort((a,b)=>rank[a]-rank[b]); return {name:letter(i),pids,matches:buildMatches(pids)}; });
+  S.lots={}; ids.forEach(id=>{S.lots[id]=Math.random();});
+  S.cfg={adv:S.setup.adv};
+  S.ko=null; S.view='groups'; ui.confirm=null;
+}
+function hasScores(){ return S.groups&&S.groups.some(g=>g.matches.some(m=>m.e.wo||m.e.g.some(x=>x[0]!==''||x[1]!==''))); }
+function createKnockout(){
+  const q=qualification(S); if(!q.allComplete) return;
+  S.ko=makeKnockout(S,q); S.view='knockout';
+}
+function startOver(){ S.groups=null;S.ko=null;S.roster={};S.lots={};S.view='setup';ui.confirm=null; }
+
+/* ---------- entries ---------- */
+function entryFor(ref,create){
+  const p=ref.split(':');
+  if(p[0]==='g'){ const g=S.groups.find(x=>x.name===p[1]); return g.matches.find(x=>x.id===p[2]).e; }
+  const M=koModel(S.ko),m=M.all[p[1]];
+  if(!m||!m.sig) return null;
+  let e=S.ko.entries[p[1]];
+  if(!e||e.sig!==m.sig){ if(!create) return null; e=S.ko.entries[p[1]]={sig:m.sig,g:emptyEntry().g,wo:null}; }
+  return e;
+}
+
+/* ---------- views ---------- */
+function pn(p){ return p.name||t('player_default',{n:p.order}); }
+function rn(pid){ const r=S.roster[pid]; return r?(r.name||t('player_default',{n:r.order})):'?'; }
+function stepper(){
+  const steps=[['setup',t('s_setup'),true],['groups',t('s_groups'),!!S.groups],['knockout',t('s_ko'),!!S.ko]];
+  const order=['setup','groups','knockout'],cur=order.indexOf(S.view);
+  $('steps').innerHTML=steps.map((s,i)=>{
+    const cls=S.view===s[0]?'on':(!s[2]?'lock':(i<cur?'done':''));
+    return `<button class="step ${cls}" data-act="go" data-v="${s[0]}" ${s[2]?'':'aria-disabled="true"'} ${S.view===s[0]?'aria-current="step"':''}><span class="n">${i+1}</span><span class="t">${esc(s[1])}</span></button>`;
+  }).join('');
+}
+function noticeBar(){
+  const n=ui.notice; if(!n) return ''; ui.notice=null;
+  return `<div class="msg ${n.kind==='err'?'err':'info'}" role="status">${esc(t(n.k))}</div>`;
+}
+function confirmBar(){
+  const c=ui.confirm; if(!c) return '';
+  return `<div class="confirm" role="alert"><span>${esc(t(c.k))}</span><button class="btn small" data-act="confirm-yes">${esc(t(c.lk))}</button><button class="btn ghost small" data-act="confirm-no">${esc(t('cancel'))}</button></div>`;
+}
+
+/* setup */
+function plistHtml(){
+  const sd=S.setup.seeds;
+  return S.players.map((p,i)=>{
+    const seeded=Number.isInteger(sd)&&p.order<=sd;
+    const cut=Number.isInteger(sd)&&sd>0&&p.order===sd&&i<S.players.length-1;
+    const nm=pn(p);
+    return `<div class="prow ${seeded?'seed':''} ${cut?'cut':''}">
+      <input class="ord" inputmode="numeric" value="${p.order}" data-id="${p.id}" aria-label="${esc(t('aria_order',{name:nm}))}">
+      <div style="display:flex;align-items:center;min-width:0">${seeded?`<span class="seedmark">${esc(t('seed_tag'))}</span>`:''}<input class="pname" value="${esc(p.name)}" placeholder="${esc(nm)}" data-id="${p.id}" aria-label="${esc(t('aria_name',{n:p.order}))}"></div>
+      <div class="tools"><button class="ibtn" data-act="up" data-id="${p.id}" aria-label="${esc(t('aria_up',{name:nm}))}">↑</button><button class="ibtn" data-act="down" data-id="${p.id}" aria-label="${esc(t('aria_down',{name:nm}))}">↓</button><button class="ibtn" data-act="del" data-id="${p.id}" aria-label="${esc(t('aria_del',{name:nm}))}">✕</button></div>
+    </div>`;}).join('');
+}
+function sizesText(sizes){
+  const c={}; sizes.forEach(z=>{c[z]=(c[z]||0)+1;});
+  return Object.keys(c).map(Number).sort((a,b)=>b-a).map(z=>t('size_part',{c:c[z],z})).join(' '+t('and')+' ');
+}
+function vboxHtml(V){
+  let h='';
+  const L=a=>a.map(m=>`<li>${esc(t(m.k,m.v))}</li>`).join('');
+  if(V.E.length) h+=`<div class="msg err"><strong>${esc(t('fix_title'))}</strong><ul>${L(V.E)}</ul></div>`;
+  if(V.W.length) h+=`<div class="msg warn"><strong>${esc(t('tips_title'))}</strong><ul>${L(V.W)}</ul></div>`;
+  if(!V.E.length){
+    const p=V.plan,vv=Object.assign({A:S.setup.adv},p);
+    const q=t(p.extra>0?'q_extra':p.byes>0?'q_byes':'q_plain',vv);
+    h+=`<div class="msg info">${esc(t('info_in',{n:S.players.length,sizes:sizesText(V.sizes)}))} ${esc(q)}</div>`;
+  }
+  return h;
+}
+function ctaHtml(V){
+  return `<button class="btn" data-act="mkgroups" ${V.E.length?'disabled':''}>${esc(t(S.groups?'create_again':'create_groups'))}</button>`
+   +(S.groups?`<span class="hint">${esc(t('groups_exist'))}</span><button class="btn ghost" data-act="go" data-v="groups">${esc(t('back_groups'))}</button>`:'');
+}
+function refreshSetup(){
+  const V=validateSetup(S.setup,S.players.length);
+  $('vbox').innerHTML=vboxHtml(V); $('cta').innerHTML=ctaHtml(V);
+}
+function viewSetup(){
+  const F=(f,l,hint)=>`<div class="fld"><label for="f-${f}">${esc(t(l))}</label><input class="num" id="f-${f}" data-f="${f}" inputmode="numeric" value="${Number.isFinite(S.setup[f])?S.setup[f]:''}"><small>${esc(t(hint))}</small></div>`;
+  return `<section>
+    <div class="sechead"><div><h2>${esc(t('h_setup'))}</h2><p class="lead">${esc(t('lead_setup'))}</p></div></div>
+    <div class="fields">
+      ${F('n','f_n','hint_n')}
+      ${F('g','f_g','hint_g')}
+      ${F('per','f_per','hint_per')}
+      ${F('adv','f_adv','hint_adv')}
+      ${F('seeds','f_seeds','hint_seeds')}
+    </div>
+    <div id="vbox"></div>
+    <div class="plhead"><h3>${esc(t('h_players'))}</h3>
+      <div class="acts"><button class="btn ghost small" data-act="addp">${esc(t('add_player'))}</button></div></div>
+    <details class="paste"><summary>${esc(t('paste_sum'))}</summary>
+      <div class="row"><textarea id="pasteTxt" placeholder="${esc(t('paste_ph'))}" aria-label="${esc(t('paste_aria'))}"></textarea><button class="btn small" data-act="usepaste">${esc(t('paste_btn'))}</button></div></details>
+    <p class="lead" style="margin:0 0 8px">${esc(t('order_help'))}</p>
+    <div class="plist" id="plist" data-keep="plist">${plistHtml()}</div>
+    <div class="cta" id="cta"></div>
+  </section>`;
+}
+
+/* match sheet */
+function nmObj(pid,info){ if(!pid) return {name:t('tbd'),tbd:true}; const r=S.roster[pid]||{order:''}; return {name:rn(pid),sub:info?info[pid].label:r.order}; }
+function sheet(ref,A,B,r,entry,o){
+  const g=(entry&&entry.g)||emptyEntry().g;
+  const cl=side=>r.done?((side==='a'?r.winner==='a':r.winner==='b')?(o.gold?'gold':'w'):'l'):'';
+  const dis=o.dis||r.wo?'disabled':'';
+  const nm=(X,side)=>`<div class="nmc ${cl(side)} ${X.tbd?'tbd':''}">${X.sub!==undefined&&X.sub!==''&&!X.tbd?`<small>${esc(X.sub)}</small>`:''}<span class="tx" title="${esc(X.name)}">${esc(X.name)}</span></div>`;
+  let h=`<div class="sheet ${o.pt?'withpt':''}"><div class="hc"></div>${nm(A,'a')}${nm(B,'b')}`;
+  for(let i=0;i<5;i++){
+    const bad=r.bad[i]?'bad':'';
+    const inp=(s,side)=>`<div class="c ${cl(side)}"><input class="sc ${bad} ${r.gw[i]===side?'gw':''}" inputmode="numeric" maxlength="2" autocomplete="off" value="${esc(g[i][s])}" data-ref="${ref}" data-i="${i}" data-s="${s}" data-k="${ref}|${i}|${s}" aria-label="${esc(t('aria_game',{i:i+1,name:s?B.name:A.name}))}" ${dis}></div>`;
+    h+=`<div class="hc">G${i+1}</div>${inp(0,'a')}${inp(1,'b')}`;
+  }
+  const tot=(v,side)=>`<div class="c ${cl(side)}">${r.started||r.done?v:''}</div>`;
+  h+=`<div class="hc">Gms</div>${tot(r.ga,'a')}${tot(r.gb,'b')}`;
+  if(o.pt){ const pt=(side)=>`<div class="c ${cl(side)}">${r.done?(r.winner===side?1:0):'–'}</div>`; h+=`<div class="hc">Pt</div>${pt('a')}${pt('b')}`; }
+  return h+'</div>';
+}
+function matchBlock(ref,A,B,r,entry,o){
+  const wo=(entry&&entry.wo)||'';
+  const sel=o.dis&&!wo?'':`<select class="wo" data-ref="${ref}" ${o.dis?'disabled':''} aria-label="${esc(t('wo_aria'))}" title="${esc(t('wo_title'))}"><option value="">${esc(t('wo_played'))}</option><option value="a" ${wo==='a'?'selected':''}>${esc(t('wo_win',{name:A.name}))}</option><option value="b" ${wo==='b'?'selected':''}>${esc(t('wo_win',{name:B.name}))}</option></select>`;
+  const badKeys=Object.keys(r.bad);
+  const err=badKeys.length?`<div class="err">${esc(t('game_err',{i:+badKeys[0]+1,msg:t(r.bad[badKeys[0]])}))}</div>`:'';
+  return `<div class="${o.card?'mc':'mb'}"><div class="mm"><span>${esc(o.label)}</span>${sel}</div>${sheet(ref,A,B,r,entry,o)}${err}</div>`;
+}
+
+/* groups */
+function standingsHtml(g,q){
+  const rk=q.rk[g.name],A=advN();
+  let h=`<table class="st"><thead><tr><th>#</th><th class="l">${esc(t('th_player'))}</th><th title="${esc(t('th_p_t'))}">${esc(t('th_p'))}</th><th title="${esc(t('th_pts_t'))}">${esc(t('th_pts'))}</th><th title="${esc(t('th_games_t'))}">${esc(t('th_games'))}</th><th title="${esc(t('th_diff_t'))}">+/−</th></tr></thead><tbody>`;
+  rk.rows.forEach(r=>{
+    const Q=q.allComplete?q.qualified[r.pid]:null;
+    const cls=q.allComplete?(Q?'g':'r'):'';
+    const ro=S.roster[r.pid]||{};
+    const d=r.pw-r.pl;
+    let tags=''; if(ro.seed) tags+=`<span class="tag seed">${esc(t('tag_seed'))}</span>`;
+    if(Q&&Q.pos>A) tags+=`<span class="tag ok">${esc(t('tag_best',{n:Q.pos}))}</span>`;
+    if(rk.complete&&(r.lot||(Q&&Q.lot))) tags+=`<span class="tag" title="${esc(t('tag_lot_t'))}">${esc(t('tag_lot'))}</span>`;
+    h+=`<tr class="${cls}"><td>${r.rank}</td><td class="l">${esc(rn(r.pid))}${tags}</td><td>${r.p}</td><td><b>${r.w}</b></td><td>${r.gw}–${r.gl}</td><td>${d>0?'+':''}${d}</td></tr>`;
+  });
+  return h+'</tbody></table>';
+}
+function groupCard(g,q){
+  const ev=q.ev[g.name],rk=q.rk[g.name],done=g.matches.filter(m=>ev[m.id].done).length,locked=!!S.ko;
+  let h=`<section class="gcard" id="grp-${g.name}"><div class="ghead"><h3>${esc(t('group_n',{g:g.name}))}</h3><span class="chip ${rk.complete?'ok':''}">${esc(rk.complete?t('complete'):t('played_of',{d:done,t:g.matches.length}))}</span></div><div class="gbody">`;
+  g.matches.forEach(m=>{
+    h+=matchBlock('g:'+g.name+':'+m.id,nmObj(m.a),nmObj(m.b),ev[m.id],m.e,{pt:true,dis:locked,label:t('round_n',{n:m.round})});
+  });
+  return h+standingsHtml(g,q)+'</div></section>';
+}
+function extraHtml(q){
+  if(!q.allComplete||q.extra<=0||!q.extraList) return '';
+  const A=advN(),uneven=new Set(S.groups.map(g=>g.pids.length)).size>1;
+  let h=`<div class="panel"><h3>${esc(t('extra_title',{n:A+1}))}</h3><p class="n">${esc(t('extra_note',{extra:q.extra,K:q.plan.K,uneven}))}</p>
+  <table class="st"><thead><tr><th>#</th><th class="l">${esc(t('th_player'))}</th><th>${esc(t('th_group'))}</th><th>${esc(t('th_pts'))}</th><th>${esc(t('th_gd'))}</th><th>${esc(t('th_pd'))}</th></tr></thead><tbody>`;
+  q.extraList.forEach((x,i)=>{
+    const tag=x.lot?`<span class="tag" title="${esc(t('tag_lot_t'))}">${esc(t('tag_lot'))}</span>`:'';
+    h+=`<tr class="${x.through?'g':'r'}"><td>${i+1}</td><td class="l">${esc(rn(x.pid))}${tag}</td><td>${x.group}</td><td>${x.w}</td><td>${x.gd>0?'+':''}${x.gd}</td><td>${x.pd>0?'+':''}${x.pd}</td></tr>`;
+  });
+  return h+'</tbody></table></div>';
+}
+function viewGroups(){
+  const q=qualification(S);
+  const total=S.groups.reduce((a,g)=>a+g.matches.length,0),done=S.groups.reduce((a,g)=>a+g.matches.filter(m=>q.ev[g.name][m.id].done).length,0);
+  let h=`<section><div class="sechead"><div><h2>${esc(t('h_groups'))}</h2><p class="lead">${esc(t('lead_groups'))}</p></div><div class="prog">${t('prog',{d:done,t:total})}</div></div>`;
+  if(S.ko) h+=`<div class="msg info" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="flex:1 1 240px">${esc(t('locked'))}</span><button class="btn ghost small" data-act="ask-unlock">${esc(t('unlock_btn'))}</button></div>`;
+  h+=`<div class="gchips"><span style="font-size:13px;color:var(--ink-2)">${esc(t('jump'))}</span>${S.groups.map(g=>`<button class="gchip ${q.rk[g.name].complete?'ok':''}" data-act="jump" data-g="${g.name}">${g.name}</button>`).join('')}</div>`;
+  h+=`<div class="ggrid">${S.groups.map(g=>groupCard(g,q)).join('')}</div>${extraHtml(q)}`;
+  if(q.allComplete) h+=`<div class="legend" style="margin-top:16px"><span><i style="background:var(--ok-bg)"></i>${esc(t('legend_go'))}</span><span><i style="background:var(--no-bg)"></i>${esc(t('legend_out'))}</span></div>`;
+  h+=`<div class="foot">`;
+  if(S.ko) h+=`<button class="btn" data-act="go" data-v="knockout">${esc(t('go_ko'))}</button>`;
+  else h+=`<button class="btn" data-act="mkko" ${q.allComplete?'':'disabled'}>${esc(t('mk_ko'))}</button><span class="hint" style="color:var(--ink-2);font-size:13px">${esc(q.allComplete?t('ko_ready',{N:q.plan.N,byes:q.plan.byes}):t('ko_wait',{d:done,t:total}))}</span>`;
+  h+=`<button class="btn ghost" data-act="go" data-v="setup">${esc(t('back_setup'))}</button>`;
+  if(!S.ko) h+=`<button class="btn ghost" data-act="ask-redraw">${esc(t('redraw'))}</button>`;
+  return h+'</div></section>';
+}
+
+/* knockout */
+function roundName(r,R){ const left=R-r; return left===1?t('r_final'):left===2?t('r_semi'):left===3?t('r_quarter'):t('r_of',{n:Math.pow(2,left)}); }
+function matchLabel(r,R,i){ const left=R-r; return left===1?t('r_final'):left===2?t('m_semi',{n:i+1}):left===3?t('m_quarter',{n:i+1}):t('m_n',{n:i+1}); }
+function byeCard(m,label,info){
+  const pid=m.a||m.b;
+  return `<div class="mc bye"><div class="mm"><span>${esc(label)}</span><span class="chip">${esc(t('bye'))}</span></div><div class="byebody"><small>${esc(info[pid].label)}</small><b>${esc(rn(pid))}</b> ${esc(t('goes_through'))}</div></div>`;
+}
+function koCard(m,label,info,gold){
+  if(m.bye) return byeCard(m,label,info);
+  const A=nmObj(m.a,info),B=nmObj(m.b,info),known=!!(m.a&&m.b);
+  return matchBlock('k:'+m.id,A,B,m.ev,m.entry,{card:true,dis:!known,label,gold});
+}
+function viewKnockout(){
+  const M=koModel(S.ko),info=S.ko.info,R=M.R;
+  const rounds=M.rounds.map((ms,r)=>{
+    const last=r===R-1,list=ms.map((m,i)=>koCard(m,matchLabel(r,R,i),info,last)),all=ms.slice();
+    if(last&&M.third){ list.push(`<div><h4 style="margin:6px 0 8px;text-align:center">${esc(t('third'))}</h4>${koCard(M.third,t('third_match'),info)}</div>`); all.push(M.third); }
+    return {t:roundName(r,R),list,ms:all};
+  });
+  const act=rounds.findIndex(r=>r.ms.some(m=>m.a&&m.b&&!m.bye&&!m.ev.done));
+  const N=S.ko.N||S.ko.K;
+  let h=`<section><div class="sechead"><div><h2>${esc(t('h_ko'))}</h2><p class="lead">${esc(t('lead_ko',{N}))}</p></div></div>`;
+  if(M.fin.w){
+    h+=`<div class="champ"><div><span>${esc(t('champion'))}</span><div class="big">${esc(rn(M.fin.w))}</div></div><span>${esc(t('runner'))}: <b>${esc(rn(M.fin.l))}</b></span>${M.third&&M.third.w?`<span>${esc(t('third'))}: <b>${esc(rn(M.third.w))}</b></span>`:''}</div>`;
+  }
+  if(S.ko.rematch) h+=`<div class="msg warn">${esc(t('rematch'))}</div>`;
+  if(S.ko.N&&S.ko.N<S.ko.K) h+=`<div class="msg info">${esc(t('byes_note',{n:S.ko.K-S.ko.N}))}</div>`;
+  h+=`<div class="rnav"><span style="font-size:13px;color:var(--ink-2);align-self:center">${esc(t('go_to'))}</span>${rounds.map((r,i)=>`<button class="gchip ${i===act?'ok':''}" data-act="rnd" data-i="${i}">${esc(r.t)}</button>`).join('')}</div>`;
+  h+=`<div class="legend"><span><i style="background:var(--ok-bg)"></i>${esc(t('won'))}</span><span><i style="background:var(--no-bg)"></i>${esc(t('lost'))}</span><span><i style="background:var(--gold)"></i>${esc(t('champion'))}</span></div>`;
+  h+=`<div class="bracket" id="bracket" data-keep="bracket">${rounds.map((r,i)=>`<div class="rcol ${i===act?'act':''}"><h4>${esc(r.t)}</h4><div class="rbody">${r.list.join('')}</div></div>`).join('')}</div>`;
+  h+=`<div class="foot"><button class="btn ghost" data-act="go" data-v="groups">${esc(t('back_ko'))}</button></div></section>`;
+  return h;
+}
+
+/* ---------- render ---------- */
+function applyStatic(){
+  document.documentElement.lang=LANG;
+  document.querySelectorAll('[data-i]').forEach(el=>{el.textContent=t(el.dataset.i);});
+  document.querySelectorAll('[data-ia]').forEach(el=>{el.setAttribute('aria-label',t(el.dataset.ia));});
+  document.querySelectorAll('.lb').forEach(b=>{const on=b.dataset.l===LANG; b.classList.toggle('on',on); b.setAttribute('aria-pressed',String(on));});
+  if(!window.claude) document.title=t('app_title');
+}
+function setLang(l){ if(LANGS.indexOf(l)<0||l===LANG) return; LANG=l; try{localStorage.setItem('tt-lang',l);}catch(e){} render(); }
+function render(focusKey,selStart){
+  const keep={}; document.querySelectorAll('[data-keep]').forEach(el=>{keep[el.dataset.keep]=[el.scrollLeft,el.scrollTop];});
+  applyStatic();
+  stepper();
+  app.innerHTML=noticeBar()+confirmBar()+(S.view==='setup'?viewSetup():S.view==='groups'?viewGroups():viewKnockout());
+  if(S.view==='setup') refreshSetup();
+  document.querySelectorAll('[data-keep]').forEach(el=>{const k=keep[el.dataset.keep]; if(k){el.scrollLeft=k[0];el.scrollTop=k[1];}});
+  if(focusKey){
+    const el=app.querySelector('[data-k="'+focusKey+'"]');
+    if(el&&!el.disabled){ el.focus(); try{el.setSelectionRange(selStart,selStart);}catch(e){} }
+  }
+}
+
+/* ---------- save and load ---------- */
+function exportData(){ return JSON.stringify({app:'tt-planner',v:1,saved:new Date().toISOString(),state:S},null,1); }
+function parseData(text){
+  const bad={err:'n_badfile'};
+  let o; try{o=JSON.parse(text);}catch(e){return bad;}
+  const st=o&&o.app==='tt-planner'?o.state:null;
+  if(!st||st.v!==1||!st.setup||typeof st.setup!=='object'||!Array.isArray(st.players)||!st.players.length) return bad;
+  if(!st.players.every(p=>p&&typeof p.id==='string'&&typeof p.name==='string')) return bad;
+  if(st.groups!=null){
+    if(!Array.isArray(st.groups)||!st.groups.every(g=>g&&Array.isArray(g.pids)&&Array.isArray(g.matches))) return bad;
+  }
+  if(st.ko!=null&&!Array.isArray(st.ko.first||st.ko.r16)) return bad;
+  return {state:st};
+}
+function applyState(st){
+  st.groups=st.groups||null; st.ko=st.ko||null; migrateKo(st); cleanNames(st); st.roster=st.roster||{}; st.lots=st.lots||{};
+  if(typeof st.nextId!=='number') st.nextId=st.players.length+1000;
+  if(st.view==='groups'&&!st.groups) st.view='setup';
+  if(st.view==='knockout'&&!st.ko) st.view=st.groups?'groups':'setup';
+  if(['setup','groups','knockout'].indexOf(st.view)<0) st.view='setup';
+  S=st; save();
+}
+function downloadFile(){
+  const blob=new Blob([exportData()],{type:'application/json'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a'),d=new Date(),z=n=>String(n).padStart(2,'0');
+  a.href=url; a.download='table-tennis-tournament-'+d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+'.json';
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1500);
+  ui.notice={kind:'info',k:'n_saved'}; render(); window.scrollTo(0,0);
+}
+function loadText(text){
+  const r=parseData(text);
+  if(r.err){ ui.notice={kind:'err',k:r.err}; render(); window.scrollTo(0,0); return; }
+  if(S.groups){ ui.pending=r.state; ui.confirm={k:'c_load',lk:'lbl_load',act:'loadfile'}; render(); window.scrollTo(0,0); }
+  else{ applyState(r.state); render(); window.scrollTo(0,0); }
+}
+$('loadFile').addEventListener('change',e=>{
+  const f=e.target.files&&e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{ loadText(String(rd.result)); e.target.value=''; };
+  rd.onerror=()=>{ ui.notice={kind:'err',k:'n_unread'}; render(); e.target.value=''; };
+  rd.readAsText(f);
+});
+
+/* ---------- events ---------- */
+function ask(k,lk,act){ ui.confirm={k,lk,act}; render(); window.scrollTo(0,0); }
+app.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.classList.contains('sc')){
+    const v=t.value.replace(/\D/g,'').slice(0,2), pos=t.selectionStart;
+    const en=entryFor(t.dataset.ref,true); if(!en) return;
+    en.g[+t.dataset.i][+t.dataset.s]=v; save(); render(t.dataset.k,Math.min(pos,v.length));
+  }else if(t.classList.contains('pname')){
+    const p=S.players.find(x=>x.id===t.dataset.id); if(p){p.name=t.value; if(S.roster[p.id]) S.roster[p.id].name=t.value; save();}
+  }
+});
+app.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.classList.contains('wo')){
+    const en=entryFor(t.dataset.ref,true); if(!en) return; en.wo=t.value||null; save(); render(); return;
+  }
+  if(t.classList.contains('ord')){
+    setOrder(t.dataset.id,Number(t.value)); save(); $('plist').innerHTML=plistHtml(); return;
+  }
+  if(t.dataset.f){
+    const f=t.dataset.f,raw=t.value.trim(),v=raw===''?NaN:Math.round(Number(raw));
+    S.setup[f]=Number.isFinite(v)?v:NaN;
+    if(f==='n'&&Number.isFinite(v)&&v>=1){ resizePlayers(v); }
+    if((f==='n'||f==='g')&&Number.isFinite(S.setup.n)&&Number.isFinite(S.setup.g)&&S.setup.g>=1){ S.setup.per=Math.ceil(S.players.length/S.setup.g); $('f-per').value=S.setup.per; }
+    $('f-n').value=Number.isFinite(S.setup.n)?S.setup.n:'';
+    save(); $('plist').innerHTML=plistHtml(); refreshSetup();
+  }
+});
+app.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]'); if(!b) return;
+  const a=b.dataset.act;
+  if(a==='go'){ if(b.dataset.v==='groups'&&!S.groups||b.dataset.v==='knockout'&&!S.ko) return; S.view=b.dataset.v; ui.confirm=null; save(); render(); window.scrollTo(0,0); }
+  else if(a==='addp'){ addPlayer(); save(); $('f-n').value=S.setup.n; $('f-per').value=S.setup.per; $('plist').innerHTML=plistHtml(); refreshSetup(); const l=$('plist'); l.scrollTop=l.scrollHeight; }
+  else if(a==='up'||a==='down'){ movePlayer(b.dataset.id,a==='up'?-1:1); save(); $('plist').innerHTML=plistHtml(); }
+  else if(a==='del'){ removePlayer(b.dataset.id); save(); $('f-n').value=S.setup.n; $('f-per').value=S.setup.per; $('plist').innerHTML=plistHtml(); refreshSetup(); }
+  else if(a==='usepaste'){ usePasted($('pasteTxt').value); save(); render(); }
+  else if(a==='mkgroups'){
+    if(S.groups&&hasScores()) ask('c_again','create_again','mkgroups');
+    else{ createGroups(); save(); render(); window.scrollTo(0,0); }
+  }
+  else if(a==='ask-redraw'){
+    if(hasScores()) ask('c_redraw','redraw','mkgroups');
+    else{ createGroups(); save(); render(); }
+  }
+  else if(a==='ask-unlock') ask('c_unlock','unlock_btn','unlock');
+  else if(a==='confirm-yes'){
+    const c=ui.confirm; ui.confirm=null;
+    if(c.act==='mkgroups') createGroups(); else if(c.act==='unlock'){S.ko=null;S.view='groups';} else if(c.act==='startover') startOver(); else if(c.act==='loadfile'&&ui.pending){ applyState(ui.pending); ui.pending=null; }
+    save(); render(); window.scrollTo(0,0);
+  }
+  else if(a==='confirm-no'){ ui.confirm=null; ui.pending=null; render(); }
+  else if(a==='mkko'){ createKnockout(); save(); render(); window.scrollTo(0,0); }
+  else if(a==='jump'){ const el=document.getElementById('grp-'+b.dataset.g); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }
+  else if(a==='rnd'){ const br=$('bracket'),col=br.children[+b.dataset.i]; br.scrollTo({left:col.offsetLeft-br.offsetLeft,behavior:'smooth'}); }
+});
+document.getElementById('steps').addEventListener('click',e=>{ const b=e.target.closest('[data-act]'); if(b) handleStep(b); });
+function handleStep(b){ const v=b.dataset.v; if(v==='groups'&&!S.groups||v==='knockout'&&!S.ko) return; S.view=v; ui.confirm=null; save(); render(); window.scrollTo(0,0); }
+document.querySelector('.top').addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]'); if(!b) return;
+  const a=b.dataset.act;
+  if(a==='ask-startover') ask('c_startover','startover','startover');
+  else if(a==='save') downloadFile();
+  else if(a==='load') $('loadFile').click();
+  else if(a==='lang') setLang(b.dataset.l);
+});
+
+render();
+</script>
