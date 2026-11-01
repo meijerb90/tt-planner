@@ -19,6 +19,7 @@
   --silver:#d4dbe2; --silver-soft:#eef2f5; --silver-ink:#3a434c; --silver-line:#8d99a6;
   --bronze:#dba06a; --bronze-soft:#f3e2cc; --bronze-ink:#5c3a14; --bronze-line:#a9703a;
   --warn-bg:#fdf0cf; --warn-ink:#6b4b00;
+  --band-bg:#eef0f1;
   --backdrop:rgba(29,74,125,.55);
   --f-display:'Bricolage Grotesque',system-ui,sans-serif; --f-body:'Figtree',system-ui,sans-serif;
   color-scheme:light;
@@ -83,7 +84,10 @@ details.paste textarea{flex:1 1 260px}
 .prow{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:8px;align-items:center;padding:5px 8px;border-bottom:1px solid var(--sky-200)}
 .prow:last-child{border-bottom:0}
 .prow.seed{background:var(--sky-50)}
+.prow.band{background:var(--band-bg)}
 .prow.cut{border-bottom:2px dashed var(--sky-400)}
+.pmid{display:flex;flex-wrap:wrap;align-items:center;gap:4px;min-width:0}
+.pmid .pname{flex:1;min-width:64px}
 .prow .tools{display:flex;gap:4px;align-items:center}
 .ibtn{appearance:none;background:#fff;border:1px solid var(--line-soft);border-radius:5px;width:30px;height:30px;cursor:pointer;line-height:1}
 .ibtn:hover{background:var(--sky-100)}
@@ -462,7 +466,7 @@ f_n:'Players',hint_n:'At least 4.',f_g:'Groups',hint_g:'Between 1 and 26.',f_per
 f_adv:'Advance per group',hint_adv:'Qualify for the knockout stage.',f_seeds:'Seeded players',hint_seeds:'The top of the list is seeded.',
 h_players:'Players in order of level',add_player:'Add player',paste_sum:'Paste a list of names',paste_ph:'One name per line, strongest first',paste_aria:'Names, one per line',paste_btn:'Use this list',
 order_help:'Type a new number to move a player. The others shift to make room, so adding a player at 5 pushes everyone from 5 down by one. The dashed line marks the end of the seeds.',
-seed_tag:'Seed',aria_order:v=>`Order number of ${v.name}`,aria_name:v=>`Name of player ${v.n}`,aria_up:v=>`Move ${v.name} up`,aria_down:v=>`Move ${v.name} down`,aria_del:v=>`Remove ${v.name}`,
+seed_tag:'Seed',draw_pos:v=>`Position ${v.n}`,draw_pos_t:'These players are drawn at random into this position in each group.',aria_order:v=>`Order number of ${v.name}`,aria_name:v=>`Name of player ${v.n}`,aria_up:v=>`Move ${v.name} up`,aria_down:v=>`Move ${v.name} down`,aria_del:v=>`Remove ${v.name}`,
 player_default:v=>`Player ${v.n}`,
 fix_title:'Fix this before creating groups',tips_title:'Fairness tips',and:'and',
 size_part:v=>`${v.c} group${v.c>1?'s':''} of ${v.z}`,info_in:v=>`${v.n} players in ${v.sizes}.`,
@@ -520,7 +524,7 @@ f_n:'Spelers',hint_n:'Minimaal 4.',f_g:'Poules',hint_g:'Tussen 1 en 26.',f_per:'
 f_adv:'Doorgaan per poule',hint_adv:'Gaan naar de knock-outfase.',f_seeds:'Geplaatste spelers',hint_seeds:'De bovenste spelers van de lijst zijn geplaatst.',
 h_players:'Spelers op volgorde van niveau',add_player:'Speler toevoegen',paste_sum:'Plak een lijst met namen',paste_ph:'Eén naam per regel, sterkste eerst',paste_aria:'Namen, één per regel',paste_btn:'Deze lijst gebruiken',
 order_help:'Typ een nieuw nummer om een speler te verplaatsen. De anderen schuiven op, dus een speler op 5 zetten schuift iedereen vanaf 5 één plaats naar beneden. De gestippelde lijn markeert het einde van de geplaatste spelers.',
-seed_tag:'Geplaatst',aria_order:v=>`Volgnummer van ${v.name}`,aria_name:v=>`Naam van speler ${v.n}`,aria_up:v=>`Verplaats ${v.name} omhoog`,aria_down:v=>`Verplaats ${v.name} omlaag`,aria_del:v=>`Verwijder ${v.name}`,
+seed_tag:'Geplaatst',draw_pos:v=>`Positie ${v.n}`,draw_pos_t:'Deze spelers worden willekeurig op deze plek in elke poule geloot.',aria_order:v=>`Volgnummer van ${v.name}`,aria_name:v=>`Naam van speler ${v.n}`,aria_up:v=>`Verplaats ${v.name} omhoog`,aria_down:v=>`Verplaats ${v.name} omlaag`,aria_del:v=>`Verwijder ${v.name}`,
 player_default:v=>`Speler ${v.n}`,
 fix_title:'Los dit op voordat je de poules maakt',tips_title:'Eerlijkheidstips',and:'en',
 size_part:v=>`${v.c} ${v.c>1?'poules':'poule'} van ${v.z}`,info_in:v=>`${v.n} spelers in ${v.sizes}.`,
@@ -699,14 +703,21 @@ function drawModalHtml(){
 
 /* setup */
 function plistHtml(){
-  const sd=S.setup.seeds;
+  const sd=S.setup.seeds, G=S.setup.g, validG=Number.isInteger(G)&&G>=1;
+  const sdN=Number.isInteger(sd)&&sd>0?sd:0, seedPots=validG&&sdN>0?Math.ceil(sdN/G):0;
   return S.players.map((p,i)=>{
     const seeded=Number.isInteger(sd)&&p.order<=sd;
     const cut=Number.isInteger(sd)&&sd>0&&p.order===sd&&i<S.players.length-1;
     const nm=pn(p);
-    return `<div class="prow ${seeded?'seed':''} ${cut?'cut':''}">
+    let bandTag='',bandCls='';
+    if(!seeded&&validG){
+      const band=Math.floor((i-sdN)/G);
+      bandTag=`<span class="tag" title="${esc(t('draw_pos_t'))}">${esc(t('draw_pos',{n:seedPots+band+1}))}</span>`;
+      bandCls=band%2===1?'band':'';
+    }
+    return `<div class="prow ${seeded?'seed':''} ${bandCls} ${cut?'cut':''}">
       <input class="ord" inputmode="numeric" value="${p.order}" data-id="${p.id}" aria-label="${esc(t('aria_order',{name:nm}))}">
-      <div style="display:flex;align-items:center;min-width:0">${seeded?`<span class="seedmark">${esc(t('seed_tag'))}</span>`:''}<input class="pname" value="${esc(p.name)}" placeholder="${esc(nm)}" data-id="${p.id}" aria-label="${esc(t('aria_name',{n:p.order}))}"></div>
+      <div class="pmid">${seeded?`<span class="seedmark">${esc(t('seed_tag'))}</span>`:''}${bandTag}<input class="pname" value="${esc(p.name)}" placeholder="${esc(nm)}" data-id="${p.id}" aria-label="${esc(t('aria_name',{n:p.order}))}"></div>
       <div class="tools"><button class="ibtn" data-act="up" data-id="${p.id}" aria-label="${esc(t('aria_up',{name:nm}))}">↑</button><button class="ibtn" data-act="down" data-id="${p.id}" aria-label="${esc(t('aria_down',{name:nm}))}">↓</button><button class="ibtn" data-act="del" data-id="${p.id}" aria-label="${esc(t('aria_del',{name:nm}))}">✕</button></div>
     </div>`;}).join('');
 }
