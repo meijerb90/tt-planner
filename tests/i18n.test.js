@@ -11,7 +11,7 @@ kn.forEach(k=>ok(k in DICT.en,'missing en: '+k));
 // strings identical in both languages (possible untranslated)
 ke.forEach(k=>{ if(typeof DICT.en[k]==='string'&&DICT.en[k]===DICT.nl[k]&&DICT.en[k].length>4) console.log('same in both:',k,DICT.en[k]); });
 // all function entries run with plausible vars in both langs and contain no 'undefined'/'NaN'
-const vars={n:3,G:5,ex:2,base:4,need:5,min:3,max:4,direct:10,K:16,byes:6,sd:10,A:2,extra:4,uneven:true,N:10,c:2,z:4,sizes:'x',name:'Anna',i:2,msg:'m',t:12,d:4,g:'A',r:1};
+const vars={n:3,G:5,ex:2,base:4,need:5,min:3,max:4,direct:10,K:16,byes:6,sd:10,A:2,extra:4,uneven:true,N:10,c:2,z:4,sizes:'x',name:'Anna',i:2,msg:'m',t:12,d:4,g:'A',r:1,p:2};
 ['en','nl'].forEach(l=>{setL(l);ke.forEach(k=>{const r=t(k,vars); ok(typeof r==='string'&&!/undefined|NaN|\[object/.test(r),l+' bad output '+k+': '+r);});});
 // usage check in app source
 const app=html;
@@ -24,7 +24,7 @@ const re4=/data-ia?="([a-z_0-9]+)"/g; while((m=re4.exec(body))) used.add(m[1]);
 const re5=/F\('\w+','([a-z_0-9]+)','([a-z_0-9]+)'\)/g; while((m=re5.exec(body))){used.add(m[1]);used.add(m[2]);}
 const re6=/(?:r\.bad\[i\]|err)\s*[=:]\s*'([a-z_0-9]+)'/g; while((m=re6.exec(body))) used.add(m[1]);
 const re7=/\bt\((?:p\.extra>0\?'(\w+)':p\.byes>0\?'(\w+)':'(\w+)'|S\.groups\?'(\w+)':'(\w+)')/g;
-['q_extra','q_byes','q_plain','create_again','create_groups','lbl_load'].forEach(k=>used.add(k));
+['q_extra','q_byes','q_plain','create_again','create_groups','lbl_load','draw_start','draw_next'].forEach(k=>used.add(k));
 ['r_final','r_semi','r_quarter','r_of','m_semi','m_quarter','m_n'].forEach(k=>used.add(k));
 used.forEach(k=>ok(k in DICT.en,'used but undefined: '+k));
 const unused=ke.filter(k=>!used.has(k)); console.log('unused keys:',unused.join(', ')||'none');

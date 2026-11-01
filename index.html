@@ -23,6 +23,7 @@
   --no-bg:#f8d9d9; --no-line:#c95151; --no-ink:#7d2222;
   --gold:#f3d14f; --gold-soft:#fbeeb4; --gold-ink:#5b4300; --gold-line:#b88a00;
   --warn-bg:#fdf0cf; --warn-ink:#6b4b00;
+  --backdrop:rgba(29,74,125,.55);
   --f-display:'Bricolage Grotesque',system-ui,sans-serif; --f-body:'Figtree',system-ui,sans-serif;
   color-scheme:light;
 }
@@ -94,6 +95,21 @@ details.paste textarea{flex:1 1 260px}
 .cta .hint{color:var(--ink-2);font-size:13px}
 .confirm{background:var(--warn-bg);border:1px solid var(--gold-line);border-radius:8px;padding:10px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;color:var(--warn-ink)}
 .confirm span{flex:1 1 260px}
+.drawbd{position:fixed;inset:0;background:var(--backdrop);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+.drawbox{background:var(--paper);border:1px solid var(--line);border-radius:12px;max-width:600px;width:100%;max-height:min(680px,92vh);overflow:auto;padding:18px 20px 20px}
+.drawbox h2{margin-bottom:10px}
+.draw-progress{color:var(--ink-2);font-size:13px;margin:0 0 10px}
+.draw-reveal{background:var(--sky-50);border:1px solid var(--sky-400);border-radius:10px;padding:16px;text-align:center;margin-bottom:16px}
+.draw-reveal .nm{font:700 24px var(--f-display);color:var(--sky-800)}
+.draw-reveal .slot{color:var(--sky-800);font-size:13px;margin-top:4px}
+.drawgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin-bottom:18px}
+.drawcol{border:1px solid var(--line);border-radius:8px;overflow:hidden;min-width:0}
+.drawcol h4{text-align:center;padding:5px 0;background:var(--sky-100);border-bottom:1px solid var(--line)}
+.drawcol .slotrow{padding:4px 8px;font-size:12.5px;border-top:1px solid var(--line-soft);display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:24px;justify-content:center}
+.drawcol .slotrow:first-of-type{border-top:0}
+.drawcol .slotrow .tx{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.drawcol .slotrow.empty{color:#8b939c;font-style:italic}
+.draw-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .gchips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
 .gchip{appearance:none;border:1px solid var(--line);background:#fff;border-radius:16px;padding:2px 12px;font-size:13px;cursor:pointer}
 .gchip.ok{background:var(--ok-bg);border-color:var(--ok-line);color:var(--ok-ink)}
@@ -155,6 +171,9 @@ table.st{width:100%;border-collapse:collapse;font-size:13.5px}
   .sc,input.num,input.pname,input.ord,textarea,select.wo{font-size:16px}
   select.wo{height:28px;max-width:215px}
   .rcol{flex-basis:calc(100vw - 48px)}
+  .drawbox{padding:14px}
+  .draw-reveal .nm{font-size:20px}
+  .drawgrid{grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
 }
 @media (prefers-reduced-motion:no-preference){.sc{transition:background .12s}}
 </style>
@@ -234,18 +253,19 @@ function buildMatches(pids){
 function shuffle(a,rng){ for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));const t=a[i];a[i]=a[j];a[j]=t;} return a; }
 function drawGroups(ids,G,seedCount,rng){
   rng=rng||Math.random;
-  const gr=Array.from({length:G},()=>[]);
+  const gr=Array.from({length:G},()=>[]),seq=[];
+  const place=(pid,g)=>{ seq.push({pid,g,pos:gr[g].length}); gr[g].push(pid); };
   const seeds=ids.slice(0,seedCount),rest=ids.slice(seedCount);
   for(let k=0;k*G<seeds.length;k++){
-    seeds.slice(k*G,(k+1)*G).forEach((pid,i)=>{ gr[k%2===0?i:G-1-i].push(pid); });
+    seeds.slice(k*G,(k+1)*G).forEach((pid,i)=>{ place(pid,k%2===0?i:G-1-i); });
   }
   for(let k=0;k*G<rest.length;k++){
     const chunk=rest.slice(k*G,(k+1)*G);
     let order=shuffle(Array.from({length:G},(_,i)=>i),rng);
     if(chunk.length<G) order=order.sort((x,y)=>gr[x].length-gr[y].length);
-    chunk.forEach((pid,i)=>gr[order[i]].push(pid));
+    chunk.forEach((pid,i)=>place(pid,order[i]));
   }
-  return gr;
+  return {groups:gr,seq};
 }
 
 function tally(group,ev,filter){
@@ -451,6 +471,7 @@ q_extra:v=>`${v.direct} qualify directly (top ${v.A} of each group) and the best
 q_byes:v=>`${v.direct} players qualify (top ${v.A} of each group) for a knockout stage of ${v.K}, with ${v.byes} first-round bye${v.byes>1?'s':''}.`,
 q_plain:v=>`The top ${v.A} of each group go through: ${v.direct} players in a knockout stage of ${v.K}.`,
 create_groups:'Create groups',create_again:'Create groups again',groups_exist:'Groups exist already. Creating them again clears every score.',back_groups:'Back to groups',
+draw_heading:'Group draw',draw_intro:'Click Start to draw the first player.',draw_progress:v=>`Player ${v.i} of ${v.n} drawn`,draw_position:v=>`Position ${v.p}`,draw_start:'Start the draw',draw_next:'Next player',
 tbd:'To be decided',aria_game:v=>`Game ${v.i}, ${v.name}`,wo_aria:'Walkover for this match',wo_title:'Use when a player does not show up or withdraws',wo_played:'Played',wo_win:v=>`Walkover: ${v.name} wins`,
 game_err:v=>`Game ${v.i}: ${v.msg}`,round_n:v=>`Round ${v.n}`,
 th_player:'Player',th_p:'P',th_p_t:'Matches played',th_pts:'Pts',th_pts_t:'Win points: 1 per match won',th_games:'Games',th_games_t:'Games won and lost',th_diff_t:'Rally point difference',
@@ -508,6 +529,7 @@ q_extra:v=>`${v.direct} spelers gaan direct door (de beste ${v.A} van elke poule
 q_byes:v=>`${v.direct} spelers gaan door (de beste ${v.A} van elke poule) naar een knock-outfase van ${v.K}, met ${v.byes} ${v.byes>1?'byes':'bye'} in de eerste ronde.`,
 q_plain:v=>`De beste ${v.A} van elke poule gaan door: ${v.direct} spelers in een knock-outfase van ${v.K}.`,
 create_groups:'Poules maken',create_again:'Poules opnieuw maken',groups_exist:'Er zijn al poules. Ze opnieuw maken wist alle uitslagen.',back_groups:'Terug naar de poules',
+draw_heading:'Loting van de poules',draw_intro:'Klik op Start om de eerste speler te loten.',draw_progress:v=>`Speler ${v.i} van ${v.n} geloot`,draw_position:v=>`Positie ${v.p}`,draw_start:'Start de loting',draw_next:'Volgende speler',
 tbd:'Nog te bepalen',aria_game:v=>`Game ${v.i}, ${v.name}`,wo_aria:'Walkover voor deze wedstrijd',wo_title:'Gebruik dit als een speler niet komt opdagen of zich terugtrekt',wo_played:'Gespeeld',wo_win:v=>`Walkover: ${v.name} wint`,
 game_err:v=>`Game ${v.i}: ${v.msg}`,round_n:v=>`Ronde ${v.n}`,
 th_player:'Speler',th_p:'Gesp',th_p_t:'Gespeelde wedstrijden',th_pts:'Pnt',th_pts_t:'Winstpunten: 1 per gewonnen wedstrijd',th_games:'Games',th_games_t:'Gewonnen en verloren games',th_diff_t:'Puntenverschil',
@@ -559,7 +581,7 @@ let S=load()||defaultState();
 migrateKo(S); cleanNames(S);
 if(S.view==='groups'&&!S.groups) S.view='setup';
 if(S.view==='knockout'&&!S.ko) S.view=S.groups?'groups':'setup';
-let ui={confirm:null,notice:null,pending:null};
+let ui={confirm:null,notice:null,pending:null,draw:null};
 if(window.claude) document.body.classList.add('in-viewer');
 const app=document.getElementById('app');
 const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -592,15 +614,21 @@ function usePasted(txt){
 }
 
 /* ---------- actions ---------- */
-function createGroups(){
+function startDraw(){
   const ids=S.players.map(p=>p.id), seeds=S.setup.seeds;
-  const gr=drawGroups(ids,S.setup.g,seeds);
+  const {groups,seq}=drawGroups(ids,S.setup.g,seeds);
+  const info={}; S.players.forEach(p=>{info[p.id]={name:pn(p),seed:p.order<=seeds};});
+  ui.draw={groups,seq,i:0,info}; ui.confirm=null;
+}
+function createGroups(gr){
+  const seeds=S.setup.seeds;
   const rank={}; S.players.forEach(p=>{rank[p.id]=p.order;});
   S.roster={}; S.players.forEach(p=>{S.roster[p.id]={name:p.name,order:p.order,seed:p.order<=seeds};});
   S.groups=gr.map((pids,i)=>{ pids=pids.slice().sort((a,b)=>rank[a]-rank[b]); return {name:letter(i),pids,matches:buildMatches(pids)}; });
+  const ids=S.players.map(p=>p.id);
   S.lots={}; ids.forEach(id=>{S.lots[id]=Math.random();});
   S.cfg={adv:S.setup.adv};
-  S.ko=null; S.view='groups'; ui.confirm=null;
+  S.ko=null; S.view='groups'; ui.confirm=null; ui.draw=null;
 }
 function hasScores(){ return S.groups&&S.groups.some(g=>g.matches.some(m=>m.e.wo||m.e.g.some(x=>x[0]!==''||x[1]!==''))); }
 function createKnockout(){
@@ -638,6 +666,36 @@ function noticeBar(){
 function confirmBar(){
   const c=ui.confirm; if(!c) return '';
   return `<div class="confirm" role="alert"><span>${esc(t(c.k))}</span><button class="btn small" data-act="confirm-yes">${esc(t(c.lk))}</button><button class="btn ghost small" data-act="confirm-no">${esc(t('cancel'))}</button></div>`;
+}
+function drawModalHtml(){
+  const D=ui.draw; if(!D) return '';
+  const total=D.seq.length, done=D.i>=total;
+  const filled=D.groups.map(()=>0);
+  D.seq.slice(0,D.i).forEach(s=>{filled[s.g]++;});
+  const cur=D.i>0?D.seq[D.i-1]:null;
+  const reveal=cur
+    ? `<div class="draw-reveal"><div class="nm">${esc(D.info[cur.pid].name)}</div><div class="slot">${esc(t('group_n',{g:letter(cur.g)}))} · ${esc(t('draw_position',{p:cur.pos+1}))}</div></div>`
+    : `<p class="lead">${esc(t('draw_intro'))}</p>`;
+  const grid=`<div class="drawgrid">${D.groups.map((pids,g)=>`<div class="drawcol"><h4>${esc(t('group_n',{g:letter(g)}))}</h4>${
+    pids.map((pid,k)=>k<filled[g]
+      ? `<div class="slotrow filled">${D.info[pid].seed?`<span class="seedmark">${esc(t('seed_tag'))}</span>`:''}<span class="tx">${esc(D.info[pid].name)}</span></div>`
+      : `<div class="slotrow empty">${esc(t('tbd'))}</div>`).join('')
+  }</div>`).join('')}</div>`;
+  const progress=cur?`<p class="draw-progress">${esc(t('draw_progress',{i:D.i,n:total}))}</p>`:'';
+  const actions=done
+    ? `<div class="draw-actions">
+        <button class="btn" data-act="draw-commit">${esc(t(S.groups?'create_again':'create_groups'))}</button>
+        <button class="btn ghost" data-act="draw-redraw">${esc(t('redraw'))}</button>
+        <button class="btn ghost" data-act="draw-cancel">${esc(t('cancel'))}</button>
+      </div>`
+    : `<div class="draw-actions">
+        <button class="btn" data-act="draw-next">${esc(t(D.i===0?'draw_start':'draw_next'))}</button>
+        <button class="btn ghost" data-act="draw-cancel">${esc(t('cancel'))}</button>
+      </div>`;
+  return `<div class="drawbd"><div class="drawbox" role="dialog" aria-modal="true" aria-label="${esc(t('draw_heading'))}">
+    <h2>${esc(t('draw_heading'))}</h2>
+    ${progress}${reveal}${grid}${actions}
+  </div></div>`;
 }
 
 /* setup */
@@ -823,7 +881,7 @@ function render(focusKey,selStart){
   const keep={}; document.querySelectorAll('[data-keep]').forEach(el=>{keep[el.dataset.keep]=[el.scrollLeft,el.scrollTop];});
   applyStatic();
   stepper();
-  app.innerHTML=noticeBar()+confirmBar()+(S.view==='setup'?viewSetup():S.view==='groups'?viewGroups():viewKnockout());
+  app.innerHTML=noticeBar()+confirmBar()+(S.view==='setup'?viewSetup():S.view==='groups'?viewGroups():viewKnockout())+drawModalHtml();
   if(S.view==='setup') refreshSetup();
   document.querySelectorAll('[data-keep]').forEach(el=>{const k=keep[el.dataset.keep]; if(k){el.scrollLeft=k[0];el.scrollTop=k[1];}});
   if(focusKey){
@@ -914,19 +972,23 @@ app.addEventListener('click',e=>{
   else if(a==='usepaste'){ usePasted($('pasteTxt').value); save(); render(); }
   else if(a==='mkgroups'){
     if(S.groups&&hasScores()) ask('c_again','create_again','mkgroups');
-    else{ createGroups(); save(); render(); window.scrollTo(0,0); }
+    else{ startDraw(); render(); window.scrollTo(0,0); }
   }
   else if(a==='ask-redraw'){
     if(hasScores()) ask('c_redraw','redraw','mkgroups');
-    else{ createGroups(); save(); render(); }
+    else{ startDraw(); render(); }
   }
   else if(a==='ask-unlock') ask('c_unlock','unlock_btn','unlock');
   else if(a==='confirm-yes'){
     const c=ui.confirm; ui.confirm=null;
-    if(c.act==='mkgroups') createGroups(); else if(c.act==='unlock'){S.ko=null;S.view='groups';} else if(c.act==='startover') startOver(); else if(c.act==='loadfile'&&ui.pending){ applyState(ui.pending); ui.pending=null; }
+    if(c.act==='mkgroups') startDraw(); else if(c.act==='unlock'){S.ko=null;S.view='groups';} else if(c.act==='startover') startOver(); else if(c.act==='loadfile'&&ui.pending){ applyState(ui.pending); ui.pending=null; }
     save(); render(); window.scrollTo(0,0);
   }
   else if(a==='confirm-no'){ ui.confirm=null; ui.pending=null; render(); }
+  else if(a==='draw-next'){ if(ui.draw&&ui.draw.i<ui.draw.seq.length){ ui.draw.i++; render(); } }
+  else if(a==='draw-redraw'){ startDraw(); render(); }
+  else if(a==='draw-commit'){ if(ui.draw&&ui.draw.i>=ui.draw.seq.length){ createGroups(ui.draw.groups); save(); render(); window.scrollTo(0,0); } }
+  else if(a==='draw-cancel'){ ui.draw=null; render(); }
   else if(a==='mkko'){ createKnockout(); save(); render(); window.scrollTo(0,0); }
   else if(a==='jump'){ const el=document.getElementById('grp-'+b.dataset.g); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }
   else if(a==='rnd'){ const br=$('bracket'),col=br.children[+b.dataset.i]; br.scrollTo({left:col.offsetLeft-br.offsetLeft,behavior:'smooth'}); }

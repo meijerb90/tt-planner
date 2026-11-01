@@ -24,7 +24,13 @@ function sim(n,G,A,seeds){
   const ids=[...Array(n).keys()].map(i=>'p'+(i+1));
   const S={setup:{n,g:G,per:Math.ceil(n/G),adv:A,seeds},cfg:{adv:A},lots:{},groups:null,ko:null};
   ids.forEach(i=>S.lots[i]=Math.random());
-  const gr=drawGroups(ids,G,seeds);
+  const {groups:gr,seq:drawSeq}=drawGroups(ids,G,seeds);
+  ok(drawSeq.length===n,`seq length ${n}/${G}: ${drawSeq.length}`);
+  ok(new Set(drawSeq.map(s=>s.pid)).size===n,'seq unique pids');
+  gr.forEach((p,i)=>{
+    const steps=drawSeq.filter(s=>s.g===i).sort((a,b)=>a.pos-b.pos);
+    ok(steps.length===p.length&&steps.every((s,k)=>s.pos===k&&s.pid===p[k]),`seq matches group ${i}`);
+  });
   S.groups=gr.map((p,i)=>{p=p.slice().sort((a,b)=>+a.slice(1)-+b.slice(1));return {name:String.fromCharCode(65+i),pids:p,matches:buildMatches(p)};});
   S.groups.forEach(g=>g.matches.forEach(m=>{m.e=randEntry();}));
   const q=qualification(S); const plan=q.plan;
