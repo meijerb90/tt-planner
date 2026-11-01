@@ -22,6 +22,8 @@
   --ok-bg:#d6efdc; --ok-line:#3b9a54; --ok-ink:#17562b;
   --no-bg:#f8d9d9; --no-line:#c95151; --no-ink:#7d2222;
   --gold:#f3d14f; --gold-soft:#fbeeb4; --gold-ink:#5b4300; --gold-line:#b88a00;
+  --silver:#d4dbe2; --silver-soft:#eef2f5; --silver-ink:#3a434c; --silver-line:#8d99a6;
+  --bronze:#dba06a; --bronze-soft:#f3e2cc; --bronze-ink:#5c3a14; --bronze-line:#a9703a;
   --warn-bg:#fdf0cf; --warn-ink:#6b4b00;
   --backdrop:rgba(29,74,125,.55);
   --f-display:'Bricolage Grotesque',system-ui,sans-serif; --f-body:'Figtree',system-ui,sans-serif;
@@ -133,6 +135,7 @@ select.wo{font-size:11.5px;border:1px solid var(--line-soft);border-radius:4px;b
 .nmc.tbd .tx{color:#8b939c;font-weight:400;font-style:italic}
 .c{height:30px;display:grid;place-items:center;font-weight:500}
 .sheet>.w{background:var(--ok-bg)} .sheet>.l{background:var(--no-bg)} .sheet>.gold{background:var(--gold)}
+.sheet>.silver{background:var(--silver)} .sheet>.bronze{background:var(--bronze)}
 .sc{width:100%;height:30px;border:0;background:transparent;text-align:center;padding:0;border-radius:0}
 .sc:focus{outline:2px solid var(--sky-400);outline-offset:-2px;background:#fff}
 .sc.gw{font-weight:700}
@@ -156,9 +159,13 @@ table.st{width:100%;border-collapse:collapse;font-size:13.5px}
 .rcol.act>h4{background:var(--sky-600);color:#fff}
 .rbody{flex:1;display:flex;flex-direction:column;justify-content:space-around;gap:14px}
 .rnav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
-.champ{display:flex;gap:10px 22px;align-items:center;flex-wrap:wrap;background:var(--gold-soft);border:1px solid var(--gold-line);border-radius:10px;padding:12px 16px;margin-bottom:16px}
-.champ .big{background:var(--gold);border:1px solid var(--gold-line);border-radius:8px;padding:4px 14px;font:700 20px var(--f-display);color:var(--gold-ink)}
-.champ span{color:var(--gold-ink)}
+.champ{display:flex;gap:14px 26px;align-items:flex-start;flex-wrap:wrap;background:var(--gold-soft);border:1px solid var(--gold-line);border-radius:10px;padding:12px 16px;margin-bottom:16px}
+.champ .place{display:flex;flex-direction:column;gap:4px}
+.champ .place>span{color:var(--gold-ink);font-size:13px}
+.champ .big{border-radius:8px;padding:4px 14px;font:700 20px var(--f-display)}
+.champ .big.gold{background:var(--gold);border:1px solid var(--gold-line);color:var(--gold-ink)}
+.champ .big.silver{background:var(--silver);border:1px solid var(--silver-line);color:var(--silver-ink)}
+.champ .big.bronze{background:var(--bronze);border:1px solid var(--bronze-line);color:var(--bronze-ink)}
 .foot{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px;align-items:center}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-2);margin-bottom:12px}
 .legend i{display:inline-block;width:12px;height:12px;border:1px solid var(--line);border-radius:3px;margin-right:5px;vertical-align:-1px}
@@ -761,7 +768,13 @@ function viewSetup(){
 function nmObj(pid,info){ if(!pid) return {name:t('tbd'),tbd:true}; const r=S.roster[pid]||{order:''}; return {name:rn(pid),sub:info?info[pid].label:r.order}; }
 function sheet(ref,A,B,r,entry,o){
   const g=(entry&&entry.g)||emptyEntry().g;
-  const cl=side=>r.done?((side==='a'?r.winner==='a':r.winner==='b')?(o.gold?'gold':'w'):'l'):'';
+  const cl=side=>{
+    if(!r.done) return '';
+    const won=side==='a'?r.winner==='a':r.winner==='b';
+    if(o.medal==='final') return won?'gold':'silver';
+    if(o.medal==='third') return won?'bronze':'l';
+    return won?'w':'l';
+  };
   const dis=o.dis||r.wo?'disabled':'';
   const nm=(X,side)=>`<div class="nmc ${cl(side)} ${X.tbd?'tbd':''}">${X.sub!==undefined&&X.sub!==''&&!X.tbd?`<small>${esc(X.sub)}</small>`:''}<span class="tx" title="${esc(X.name)}">${esc(X.name)}</span></div>`;
   let h=`<div class="sheet ${o.pt?'withpt':''}"><div class="hc"></div>${nm(A,'a')}${nm(B,'b')}`;
@@ -841,28 +854,28 @@ function byeCard(m,label,info){
   const pid=m.a||m.b;
   return `<div class="mc bye"><div class="mm"><span>${esc(label)}</span><span class="chip">${esc(t('bye'))}</span></div><div class="byebody"><small>${esc(info[pid].label)}</small><b>${esc(rn(pid))}</b> ${esc(t('goes_through'))}</div></div>`;
 }
-function koCard(m,label,info,gold){
+function koCard(m,label,info,medal){
   if(m.bye) return byeCard(m,label,info);
   const A=nmObj(m.a,info),B=nmObj(m.b,info),known=!!(m.a&&m.b);
-  return matchBlock('k:'+m.id,A,B,m.ev,m.entry,{card:true,dis:!known,label,gold});
+  return matchBlock('k:'+m.id,A,B,m.ev,m.entry,{card:true,dis:!known,label,medal});
 }
 function viewKnockout(){
   const M=koModel(S.ko),info=S.ko.info,R=M.R;
   const rounds=M.rounds.map((ms,r)=>{
-    const last=r===R-1,list=ms.map((m,i)=>koCard(m,matchLabel(r,R,i),info,last)),all=ms.slice();
-    if(last&&M.third){ list.push(`<div><h4 style="margin:6px 0 8px;text-align:center">${esc(t('third'))}</h4>${koCard(M.third,t('third_match'),info)}</div>`); all.push(M.third); }
+    const last=r===R-1,list=ms.map((m,i)=>koCard(m,matchLabel(r,R,i),info,last?'final':null)),all=ms.slice();
+    if(last&&M.third){ list.push(`<div><h4 style="margin:6px 0 8px;text-align:center">${esc(t('third'))}</h4>${koCard(M.third,t('third_match'),info,'third')}</div>`); all.push(M.third); }
     return {t:roundName(r,R),list,ms:all};
   });
   const act=rounds.findIndex(r=>r.ms.some(m=>m.a&&m.b&&!m.bye&&!m.ev.done));
   const N=S.ko.N||S.ko.K;
   let h=`<section><div class="sechead"><div><h2>${esc(t('h_ko'))}</h2><p class="lead">${esc(t('lead_ko',{N}))}</p></div></div>`;
   if(M.fin.w){
-    h+=`<div class="champ"><div><span>${esc(t('champion'))}</span><div class="big">${esc(rn(M.fin.w))}</div></div><span>${esc(t('runner'))}: <b>${esc(rn(M.fin.l))}</b></span>${M.third&&M.third.w?`<span>${esc(t('third'))}: <b>${esc(rn(M.third.w))}</b></span>`:''}</div>`;
+    h+=`<div class="champ"><div class="place"><span>${esc(t('champion'))}</span><div class="big gold">${esc(rn(M.fin.w))}</div></div><div class="place"><span>${esc(t('runner'))}</span><div class="big silver">${esc(rn(M.fin.l))}</div></div>${M.third&&M.third.w?`<div class="place"><span>${esc(t('third'))}</span><div class="big bronze">${esc(rn(M.third.w))}</div></div>`:''}</div>`;
   }
   if(S.ko.rematch) h+=`<div class="msg warn">${esc(t('rematch'))}</div>`;
   if(S.ko.N&&S.ko.N<S.ko.K) h+=`<div class="msg info">${esc(t('byes_note',{n:S.ko.K-S.ko.N}))}</div>`;
   h+=`<div class="rnav"><span style="font-size:13px;color:var(--ink-2);align-self:center">${esc(t('go_to'))}</span>${rounds.map((r,i)=>`<button class="gchip ${i===act?'ok':''}" data-act="rnd" data-i="${i}">${esc(r.t)}</button>`).join('')}</div>`;
-  h+=`<div class="legend"><span><i style="background:var(--ok-bg)"></i>${esc(t('won'))}</span><span><i style="background:var(--no-bg)"></i>${esc(t('lost'))}</span><span><i style="background:var(--gold)"></i>${esc(t('champion'))}</span></div>`;
+  h+=`<div class="legend"><span><i style="background:var(--ok-bg)"></i>${esc(t('won'))}</span><span><i style="background:var(--no-bg)"></i>${esc(t('lost'))}</span><span><i style="background:var(--gold)"></i>${esc(t('champion'))}</span><span><i style="background:var(--silver)"></i>${esc(t('runner'))}</span><span><i style="background:var(--bronze)"></i>${esc(t('third'))}</span></div>`;
   h+=`<div class="bracket" id="bracket" data-keep="bracket">${rounds.map((r,i)=>`<div class="rcol ${i===act?'act':''}"><h4>${esc(r.t)}</h4><div class="rbody">${r.list.join('')}</div></div>`).join('')}</div>`;
   h+=`<div class="foot"><button class="btn ghost" data-act="go" data-v="groups">${esc(t('back_ko'))}</button></div></section>`;
   return h;

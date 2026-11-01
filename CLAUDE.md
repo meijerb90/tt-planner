@@ -22,7 +22,7 @@ A single-page web app that plans a 1v1 table tennis tournament: seeded group dra
 - Third-place match is played whenever there are semi-finals without byes.
 - When groups of different sizes are compared, results against the last-placed players of the larger groups are left out. The fairness tip about uneven groups must not suggest this.
 - Walkover option per match counts as a 3-0 win.
-- Green is qualified or won, red is out or lost, gold is the champion. White background, soft blue theme, dark grey lines.
+- Green is qualified or won, red is out or lost. In the final, the winner is gold and the runner-up is silver; in the third-place match, the winner is bronze. White background, soft blue theme, dark grey lines.
 - Scores lock once the knockout stage exists (with an unlock button that deletes the knockout).
 
 ## Hosting
