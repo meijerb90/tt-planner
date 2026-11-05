@@ -18,6 +18,28 @@ ok(!v(32,8,2,16).E.length,'32/8/2'); ok(!v(12,3,2,3).E.length,'12/3/2 now valid'
 ok(v(3,1,2,0).E.length,'n<4'); ok(v(10,1,1,0).E.length,'direct<2'); ok(v(40,26,3,10).E.length,'>64 qualifiers');
 ok(!v(10,1,2,0).E.length,'1 group final');
 ok(v(32,8,5,16).E.length,'adv>size');
+// seed placement: seeds 1 and 2 of each pot are fixed, seeds 3+ are drawn in pairs across group-pairs,
+// an odd leftover (odd groups, or a short final pot) stays fixed.
+function checkSeedPlacement(seedCount,G,label){
+  const ids=[...Array(seedCount).keys()].map(i=>'s'+(i+1));
+  const seen=Array.from({length:seedCount},()=>new Set());
+  for(let t=0;t<400;t++){
+    const {groups}=drawGroups(ids,G,seedCount,Math.random);
+    groups.forEach((g,gi)=>{ g.forEach(pid=>{ seen[+pid.slice(1)-1].add(gi); }); });
+  }
+  for(let k=0;k*G<seedCount;k++){
+    const n=Math.min(G,seedCount-k*G),base=i=>k%2===0?i:G-1-i,off=k*G;
+    if(n>0) ok(seen[off].size===1&&seen[off].has(base(0)),`${label} pot${k} seed${off+1} fixed`);
+    if(n>1) ok(seen[off+1].size===1&&seen[off+1].has(base(1)),`${label} pot${k} seed${off+2} fixed`);
+    for(let p=2;p+1<n;p+=2){
+      const a=off+p,b=off+p+1,ga=base(p),gb=base(p+1);
+      ok(seen[a].size===2&&seen[a].has(ga)&&seen[a].has(gb),`${label} pot${k} seed${a+1} paired {${ga},${gb}}`);
+      ok(seen[b].size===2&&seen[b].has(ga)&&seen[b].has(gb),`${label} pot${k} seed${b+1} paired {${ga},${gb}}`);
+    }
+    if(n>2&&(n-2)%2===1){ const last=off+n-1; ok(seen[last].size===1&&seen[last].has(base(n-1)),`${label} pot${k} leftover seed${last+1} fixed`); }
+  }
+}
+checkSeedPlacement(8,8,'8/8'); checkSeedPlacement(7,7,'7/7 odd'); checkSeedPlacement(16,8,'16/8 two pots'); checkSeedPlacement(10,4,'10/4 partial last pot');
 // play helpers
 function sim(n,G,A,seeds){
   const ids=[...Array(n).keys()].map(i=>'p'+(i+1));

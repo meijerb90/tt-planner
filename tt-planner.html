@@ -261,7 +261,10 @@ function drawGroups(ids,G,seedCount,rng){
   const place=(pid,g)=>{ seq.push({pid,g,pos:gr[g].length}); gr[g].push(pid); };
   const seeds=ids.slice(0,seedCount),rest=ids.slice(seedCount);
   for(let k=0;k*G<seeds.length;k++){
-    seeds.slice(k*G,(k+1)*G).forEach((pid,i)=>{ place(pid,k%2===0?i:G-1-i); });
+    const chunk=seeds.slice(k*G,(k+1)*G);
+    const order=Array.from({length:chunk.length},(_,i)=>k%2===0?i:G-1-i);
+    for(let p=2;p+1<chunk.length;p+=2){ if(rng()<0.5){ const t=order[p]; order[p]=order[p+1]; order[p+1]=t; } }
+    chunk.forEach((pid,i)=>{ place(pid,order[i]); });
   }
   for(let k=0;k*G<rest.length;k++){
     const chunk=rest.slice(k*G,(k+1)*G);
