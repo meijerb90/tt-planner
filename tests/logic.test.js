@@ -1,8 +1,8 @@
 const fs=require('fs'),path=require('path');
 const html=fs.readFileSync(path.join(__dirname,'..','tt-planner.html'),'utf8');
 const block=a=>html.slice(html.indexOf('//#'+a+'-START'),html.indexOf('//#'+a+'-END'));
-const api=new Function(block('CORE')+'\nreturn {validGame,evalEntry,emptyEntry,drawGroups,buildMatches,qualification,makeKnockout,koModel,validateSetup,koPlan,seedOrder,rankGroup};')();
-const {evalEntry,emptyEntry,drawGroups,buildMatches,qualification,makeKnockout,koModel,validateSetup,koPlan,seedOrder}=api;
+const api=new Function(block('CORE')+'\nreturn {validGame,evalEntry,emptyEntry,randEntry,drawGroups,buildMatches,qualification,makeKnockout,koModel,validateSetup,koPlan,seedOrder,rankGroup};')();
+const {evalEntry,emptyEntry,randEntry,drawGroups,buildMatches,qualification,makeKnockout,koModel,validateSetup,koPlan,seedOrder}=api;
 let fail=0; const ok=(c,m)=>{ if(!c){fail++;console.log('FAIL',m);} };
 // seed order
 ok(JSON.stringify(seedOrder(4))==='[1,4,2,3]','order4'); ok(JSON.stringify(seedOrder(8))==='[1,8,4,5,2,7,3,6]','order8');
@@ -19,7 +19,6 @@ ok(v(3,1,2,0).E.length,'n<4'); ok(v(10,1,1,0).E.length,'direct<2'); ok(v(40,26,3
 ok(!v(10,1,2,0).E.length,'1 group final');
 ok(v(32,8,5,16).E.length,'adv>size');
 // play helpers
-function randEntry(){ const e=emptyEntry();let a=0,b=0,i=0;while(a<3&&b<3){const aw=Math.random()<0.5,l=Math.floor(Math.random()*10);e.g[i]=aw?['11',String(l)]:[String(l),'11'];aw?a++:b++;i++;}return e; }
 function sim(n,G,A,seeds){
   const ids=[...Array(n).keys()].map(i=>'p'+(i+1));
   const S={setup:{n,g:G,per:Math.ceil(n/G),adv:A,seeds},cfg:{adv:A},lots:{},groups:null,ko:null};

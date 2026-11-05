@@ -208,6 +208,7 @@ table.st{width:100%;border-collapse:collapse;font-size:13.5px}
 function toInt(s){ if(s===''||s==null) return null; const n=Number(s); return Number.isInteger(n)&&n>=0?n:NaN; }
 function validGame(x,y){ const hi=Math.max(x,y), lo=Math.min(x,y); if(hi<11) return false; if(hi===11) return hi-lo>=2; return hi-lo===2; }
 function emptyEntry(){ return {g:[['',''],['',''],['',''],['',''],['','']],wo:null}; }
+function randEntry(){ const e=emptyEntry();let a=0,b=0,i=0;while(a<3&&b<3){const aw=Math.random()<0.5,l=Math.floor(Math.random()*10);e.g[i]=aw?['11',String(l)]:[String(l),'11'];aw?a++:b++;i++;}return e; }
 function ordinal(n){ const s=['th','st','nd','rd'],v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); }
 function letter(i){ return String.fromCharCode(65+i); }
 
@@ -488,6 +489,7 @@ prog:v=>`<b>${v.d}</b> of ${v.t} matches played`,locked:'The knockout stage exis
 legend_go:'Goes through to the knockout stage',legend_out:'Out',go_ko:'Go to knockout stage',mk_ko:'Create knockout stage',
 ko_ready:v=>`All groups are complete. ${v.N} players go through${v.byes?`, ${v.byes} of them with a first-round bye.`:'.'}`,
 ko_wait:v=>`Becomes active when every score is filled in (${v.d} of ${v.t}).`,back_setup:'Back to setup',redraw:'Redraw groups',
+fill_test:'Fill test scores',fill_test_t:'Randomly fills in realistic scores so you can see how group results affect the knockout stage. Not for real tournaments.',
 r_final:'Final',r_semi:'Semi-finals',r_quarter:'Quarter-finals',r_of:v=>`Round of ${v.n}`,m_semi:v=>`Semi-final ${v.n}`,m_quarter:v=>`Quarter-final ${v.n}`,m_n:v=>`Match ${v.n}`,
 third:'Third place',third_match:'Match for third place',bye:'Bye',goes_through:'goes through',h_ko:'Knockout stage',
 lead_ko:v=>`${v.N} players, best of 5 games. Winners move on by themselves. A small label before a name is the group position, for example 1A is the winner of group A.`,
@@ -496,6 +498,7 @@ byes_note:v=>`${v.n} top seed${v.n>1?'s':''} start${v.n>1?'':'s'} with a bye in 
 go_to:'Go to',won:'Won',lost:'Lost',back_ko:'Back to group stage',
 cancel:'Cancel',lbl_load:'Load file',
 c_again:'Creating the groups again clears every score entered so far.',c_redraw:'Redrawing the groups clears every score entered so far.',
+c_filltest:'Filling in test scores clears every score entered so far.',
 c_unlock:'Unlocking the groups deletes the knockout stage and all of its scores.',c_startover:'Starting over clears the groups and all scores. Your players and settings stay.',
 c_load:'Loading this file replaces the tournament that is open in this browser.',
 n_saved:'A copy of the tournament was saved to your downloads.',n_badfile:'That file is not a saved tournament from this planner.',n_unread:'That file could not be read.'
@@ -546,6 +549,7 @@ prog:v=>`<b>${v.d}</b> van ${v.t} wedstrijden gespeeld`,locked:'De knock-outfase
 legend_go:'Gaat door naar de knock-outfase',legend_out:'Uitgeschakeld',go_ko:'Naar de knock-outfase',mk_ko:'Knock-outfase maken',
 ko_ready:v=>`Alle poules zijn compleet. ${v.N} spelers gaan door${v.byes?`, waarvan ${v.byes} met een bye in de eerste ronde.`:'.'}`,
 ko_wait:v=>`Wordt actief zodra alle uitslagen zijn ingevuld (${v.d} van ${v.t}).`,back_setup:'Terug naar de opzet',redraw:'Poules opnieuw loten',
+fill_test:'Testuitslagen invullen',fill_test_t:'Vult willekeurig realistische uitslagen in, zodat je kunt zien wat poule-uitslagen doen met de knock-outfase. Niet voor echte toernooien.',
 r_final:'Finale',r_semi:'Halve finales',r_quarter:'Kwartfinales',r_of:v=>`Laatste ${v.n}`,m_semi:v=>`Halve finale ${v.n}`,m_quarter:v=>`Kwartfinale ${v.n}`,m_n:v=>`Wedstrijd ${v.n}`,
 third:'Derde plaats',third_match:'Wedstrijd om de derde plaats',bye:'Bye',goes_through:'gaat door',h_ko:'Knock-outfase',
 lead_ko:v=>`${v.N} spelers, best-of-5 games. Winnaars gaan vanzelf door. Het kleine label voor een naam is de plaats in de poule, bijvoorbeeld 1A is de winnaar van poule A.`,
@@ -554,6 +558,7 @@ byes_note:v=>`${v.n>1?v.n+' hoogst geplaatste spelers beginnen':'1 hoogst geplaa
 go_to:'Ga naar',won:'Gewonnen',lost:'Verloren',back_ko:'Terug naar de poulefase',
 cancel:'Annuleren',lbl_load:'Bestand laden',
 c_again:'Poules opnieuw maken wist alle ingevulde uitslagen.',c_redraw:'Opnieuw loten wist alle ingevulde uitslagen.',
+c_filltest:'Testuitslagen invullen wist alle ingevulde uitslagen.',
 c_unlock:'Ontgrendelen verwijdert de knock-outfase en alle uitslagen daarin.',c_startover:'Opnieuw beginnen wist de poules en alle uitslagen. Je spelers en instellingen blijven bewaard.',
 c_load:'Dit bestand laden vervangt het toernooi dat nu in deze browser openstaat.',
 n_saved:'Een kopie van het toernooi is opgeslagen in je downloads.',n_badfile:'Dat bestand is geen opgeslagen toernooi van deze planner.',n_unread:'Dat bestand kon niet worden gelezen.'
@@ -634,6 +639,7 @@ function createGroups(gr){
   S.ko=null; S.view='groups'; ui.confirm=null; ui.draw=null;
 }
 function hasScores(){ return S.groups&&S.groups.some(g=>g.matches.some(m=>m.e.wo||m.e.g.some(x=>x[0]!==''||x[1]!==''))); }
+function fillTestScores(){ S.groups.forEach(g=>{ g.matches.forEach(m=>{ m.e=randEntry(); }); }); }
 function createKnockout(){
   const q=qualification(S); if(!q.allComplete) return;
   S.ko=makeKnockout(S,q); S.view='knockout';
@@ -846,7 +852,10 @@ function viewGroups(){
   if(S.ko) h+=`<button class="btn" data-act="go" data-v="knockout">${esc(t('go_ko'))}</button>`;
   else h+=`<button class="btn" data-act="mkko" ${q.allComplete?'':'disabled'}>${esc(t('mk_ko'))}</button><span class="hint" style="color:var(--ink-2);font-size:13px">${esc(q.allComplete?t('ko_ready',{N:q.plan.N,byes:q.plan.byes}):t('ko_wait',{d:done,t:total}))}</span>`;
   h+=`<button class="btn ghost" data-act="go" data-v="setup">${esc(t('back_setup'))}</button>`;
-  if(!S.ko) h+=`<button class="btn ghost" data-act="ask-redraw">${esc(t('redraw'))}</button>`;
+  if(!S.ko){
+    h+=`<button class="btn ghost" data-act="ask-redraw">${esc(t('redraw'))}</button>`;
+    h+=`<button class="btn ghost" data-act="ask-filltest" title="${esc(t('fill_test_t'))}">${esc(t('fill_test'))}</button>`;
+  }
   return h+'</div></section>';
 }
 
@@ -995,9 +1004,13 @@ app.addEventListener('click',e=>{
     else{ startDraw(); render(); }
   }
   else if(a==='ask-unlock') ask('c_unlock','unlock_btn','unlock');
+  else if(a==='ask-filltest'){
+    if(hasScores()) ask('c_filltest','fill_test','filltest');
+    else{ fillTestScores(); save(); render(); }
+  }
   else if(a==='confirm-yes'){
     const c=ui.confirm; ui.confirm=null;
-    if(c.act==='mkgroups') startDraw(); else if(c.act==='unlock'){S.ko=null;S.view='groups';} else if(c.act==='startover') startOver(); else if(c.act==='loadfile'&&ui.pending){ applyState(ui.pending); ui.pending=null; }
+    if(c.act==='mkgroups') startDraw(); else if(c.act==='unlock'){S.ko=null;S.view='groups';} else if(c.act==='startover') startOver(); else if(c.act==='loadfile'&&ui.pending){ applyState(ui.pending); ui.pending=null; } else if(c.act==='filltest') fillTestScores();
     save(); render(); window.scrollTo(0,0);
   }
   else if(a==='confirm-no'){ ui.confirm=null; ui.pending=null; render(); }
