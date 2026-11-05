@@ -158,8 +158,11 @@ table.st{width:100%;border-collapse:collapse;font-size:13.5px}
 .panel{border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:18px;background:#fff;overflow-x:auto}
 .panel h3{margin-bottom:6px}
 .panel p.n{color:var(--ink-2);font-size:13px;margin:0 0 10px}
-.bracket{display:flex;gap:22px;overflow-x:auto;padding:4px 2px 14px;align-items:stretch}
+.bracket{display:flex;gap:22px;overflow-x:auto;padding:4px 2px 14px;align-items:stretch;position:relative}
+.bklines{position:absolute;top:0;left:0;pointer-events:none;overflow:visible}
+.bklines path{fill:none;stroke:var(--line-soft);stroke-width:1}
 .rcol{display:flex;flex-direction:column;flex:0 0 296px;min-width:0}
+.rcol .third{margin-top:24px;opacity:.85;transform:scale(.93);transform-origin:top center}
 .rcol>h4{text-align:center;padding:6px 0;margin-bottom:8px;background:var(--sky-100);border:1px solid var(--line);border-radius:6px}
 .rcol.act>h4{background:var(--sky-600);color:#fff}
 .rbody{flex:1;display:flex;flex-direction:column;justify-content:space-around;gap:14px}
@@ -503,7 +506,7 @@ ko_ready:v=>`All groups are complete. ${v.N} players go through${v.byes?`, ${v.b
 ko_wait:v=>`Becomes active when every score is filled in (${v.d} of ${v.t}).`,back_setup:'Back to setup',redraw:'Redraw groups',
 fill_test:'Fill test scores',fill_test_t:'Randomly fills in realistic scores so you can see how group results affect the knockout stage. Not for real tournaments.',
 r_final:'Final',r_semi:'Semi-finals',r_quarter:'Quarter-finals',r_of:v=>`Round of ${v.n}`,m_semi:v=>`Semi-final ${v.n}`,m_quarter:v=>`Quarter-final ${v.n}`,m_n:v=>`Match ${v.n}`,
-third:'Third place',third_match:'Match for third place',bye:'Bye',goes_through:'goes through',h_ko:'Knockout stage',
+third:'Third place',bye:'Bye',goes_through:'goes through',h_ko:'Knockout stage',
 lead_ko:v=>`${v.N} players, best of 5 games. Winners move on by themselves. A small label before a name is the group position, for example 1A is the winner of group A.`,
 champion:'Champion',runner:'Runner-up',rematch:'Two players from the same group meet in round 1. The pairing could not avoid it.',
 byes_note:v=>`${v.n} top seed${v.n>1?'s':''} start${v.n>1?'':'s'} with a bye in the first round.`,
@@ -563,7 +566,7 @@ ko_ready:v=>`Alle poules zijn compleet. ${v.N} spelers gaan door${v.byes?`, waar
 ko_wait:v=>`Wordt actief zodra alle uitslagen zijn ingevuld (${v.d} van ${v.t}).`,back_setup:'Terug naar de opzet',redraw:'Poules opnieuw loten',
 fill_test:'Testuitslagen invullen',fill_test_t:'Vult willekeurig realistische uitslagen in, zodat je kunt zien wat poule-uitslagen doen met de knock-outfase. Niet voor echte toernooien.',
 r_final:'Finale',r_semi:'Halve finales',r_quarter:'Kwartfinales',r_of:v=>`Laatste ${v.n}`,m_semi:v=>`Halve finale ${v.n}`,m_quarter:v=>`Kwartfinale ${v.n}`,m_n:v=>`Wedstrijd ${v.n}`,
-third:'Derde plaats',third_match:'Wedstrijd om de derde plaats',bye:'Bye',goes_through:'gaat door',h_ko:'Knock-outfase',
+third:'Derde plaats',bye:'Bye',goes_through:'gaat door',h_ko:'Knock-outfase',
 lead_ko:v=>`${v.N} spelers, best-of-5 games. Winnaars gaan vanzelf door. Het kleine label voor een naam is de plaats in de poule, bijvoorbeeld 1A is de winnaar van poule A.`,
 champion:'Kampioen',runner:'Tweede plaats',rematch:'Twee spelers uit dezelfde poule ontmoeten elkaar in ronde 1. De indeling kon dit niet voorkomen.',
 byes_note:v=>`${v.n>1?v.n+' hoogst geplaatste spelers beginnen':'1 hoogst geplaatste speler begint'} met een bye in de eerste ronde.`,
@@ -887,8 +890,9 @@ function viewKnockout(){
   const M=koModel(S.ko),info=S.ko.info,R=M.R;
   const rounds=M.rounds.map((ms,r)=>{
     const last=r===R-1,list=ms.map((m,i)=>koCard(m,matchLabel(r,R,i),info,last?'final':null)),all=ms.slice();
-    if(last&&M.third){ list.push(koCard(M.third,t('third_match'),info,'third')); all.push(M.third); }
-    return {t:roundName(r,R),list,ms:all};
+    let extra='';
+    if(last&&M.third){ extra=`<div class="third">${koCard(M.third,t('third'),info,'third')}</div>`; all.push(M.third); }
+    return {t:roundName(r,R),list,extra,ms:all};
   });
   const act=rounds.findIndex(r=>r.ms.some(m=>m.a&&m.b&&!m.bye&&!m.ev.done));
   const N=S.ko.N||S.ko.K;
@@ -900,12 +904,33 @@ function viewKnockout(){
   if(S.ko.N&&S.ko.N<S.ko.K) h+=`<div class="msg info">${esc(t('byes_note',{n:S.ko.K-S.ko.N}))}</div>`;
   h+=`<div class="rnav"><span style="font-size:13px;color:var(--ink-2);align-self:center">${esc(t('go_to'))}</span>${rounds.map((r,i)=>`<button class="gchip ${i===act?'ok':''}" data-act="rnd" data-i="${i}">${esc(r.t)}</button>`).join('')}</div>`;
   h+=`<div class="legend"><span><i style="background:var(--ok-bg)"></i>${esc(t('won'))}</span><span><i style="background:var(--no-bg)"></i>${esc(t('lost'))}</span><span><i style="background:var(--gold)"></i>${esc(t('champion'))}</span><span><i style="background:var(--silver)"></i>${esc(t('runner'))}</span><span><i style="background:var(--bronze)"></i>${esc(t('third'))}</span></div>`;
-  h+=`<div class="bracket" id="bracket" data-keep="bracket">${rounds.map((r,i)=>`<div class="rcol ${i===act?'act':''}"><h4>${esc(r.t)}</h4><div class="rbody">${r.list.join('')}</div></div>`).join('')}</div>`;
+  h+=`<div class="bracket" id="bracket" data-keep="bracket">${rounds.map((r,i)=>`<div class="rcol ${i===act?'act':''}"><h4>${esc(r.t)}</h4><div class="rbody">${r.list.join('')}</div>${r.extra}</div>`).join('')}</div>`;
   h+=`<div class="foot"><button class="btn ghost" data-act="go" data-v="groups">${esc(t('back_ko'))}</button></div></section>`;
   return h;
 }
 
 /* ---------- render ---------- */
+function drawBracketLines(){
+  const bracket=$('bracket'); if(!bracket) return;
+  const rcols=[...bracket.querySelectorAll('.rcol')]; if(rcols.length<2) return;
+  const bRect=bracket.getBoundingClientRect();
+  const toLocal=r=>({top:r.top-bRect.top+bracket.scrollTop,bottom:r.bottom-bRect.top+bracket.scrollTop,left:r.left-bRect.left+bracket.scrollLeft,right:r.right-bRect.left+bracket.scrollLeft,midY:(r.top+r.bottom)/2-bRect.top+bracket.scrollTop});
+  let d='';
+  for(let r=0;r<rcols.length-1;r++){
+    const cur=[...rcols[r].querySelectorAll('.rbody>.mc')],next=[...rcols[r+1].querySelectorAll('.rbody>.mc')];
+    for(let i=0;i<next.length;i++){
+      const a=toLocal(cur[2*i].getBoundingClientRect()),b=toLocal(cur[2*i+1].getBoundingClientRect()),n=toLocal(next[i].getBoundingClientRect());
+      const midX=a.right+(n.left-a.right)/2;
+      d+=`M${a.right},${a.midY}H${midX}M${b.right},${b.midY}H${midX}M${midX},${a.midY}V${b.midY}M${midX},${n.midY}H${n.left}`;
+    }
+  }
+  let svg=bracket.querySelector('.bklines');
+  if(!svg){ svg=document.createElementNS('http://www.w3.org/2000/svg','svg'); svg.setAttribute('class','bklines'); bracket.insertBefore(svg,bracket.firstChild); }
+  svg.setAttribute('width',bracket.scrollWidth); svg.setAttribute('height',bracket.scrollHeight);
+  svg.innerHTML=`<path d="${d}"></path>`;
+}
+let resizeTimer;
+window.addEventListener('resize',()=>{ clearTimeout(resizeTimer); resizeTimer=setTimeout(()=>{ if(S.view==='knockout') drawBracketLines(); },100); });
 function applyStatic(){
   document.documentElement.lang=LANG;
   document.querySelectorAll('[data-i]').forEach(el=>{el.textContent=t(el.dataset.i);});
@@ -925,6 +950,7 @@ function render(focusKey,selStart){
     const el=app.querySelector('[data-k="'+focusKey+'"]');
     if(el&&!el.disabled){ el.focus(); try{el.setSelectionRange(selStart,selStart);}catch(e){} }
   }
+  if(S.view==='knockout') drawBracketLines();
 }
 
 /* ---------- save and load ---------- */
